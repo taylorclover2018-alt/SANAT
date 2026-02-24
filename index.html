@@ -1,214 +1,408 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>ASSEUF - Sistema de Cálculo</title>
+  <meta charset="UTF-8" />
+  <title>ASSEUF — Sistema de Cálculo das Rotas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Fonte e estilo base -->
   <style>
+    :root {
+      --bg-main: #050509;
+      --bg-card: #111119;
+      --bg-card-soft: #151521;
+      --border-soft: #26263a;
+      --accent: #4CAF50;
+      --accent-soft: rgba(76, 175, 80, 0.16);
+      --text-main: #f5f5f7;
+      --text-muted: #9ea0b8;
+      --danger: #ff5252;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #111;
-      color: #f5f5f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #151528 0, #050509 45%);
+      color: var(--text-main);
+      min-height: 100vh;
     }
-    header {
+
+    /* HEADER / SHELL */
+    .app-shell {
+      min-height: 100vh;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(90deg, rgba(5,5,9,0.96), rgba(5,5,9,0.92));
+      border-bottom: 1px solid rgba(60, 60, 90, 0.7);
+      padding: 14px 22px;
+      display: flex;
       align-items: center;
-      padding: 14px 20px;
-      background: #1a1a1a;
-      border-bottom: 1px solid #333;
+      justify-content: space-between;
     }
-    nav button {
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: none;
-      background: #222;
-      color: #fff;
-      cursor: pointer;
-      margin-left: 6px;
-    }
-    nav button.active {
-      background: #4CAF50;
-      color: #111;
-    }
-    main {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 0 16px;
-    }
-    .card {
-      background: #181818;
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid #333;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+    .header-left {
+      display: flex;
+      align-items: center;
       gap: 14px;
     }
-    input {
-      width: 100%;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #333;
-      background: #222;
-      color: #fff;
+
+    .logo-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #7cffb0, #4CAF50 55%, #1b5e20 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #050509;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 0 18px rgba(76, 175, 80, 0.8);
     }
-    .btn {
-      margin-top: 16px;
-      padding: 10px 18px;
+
+    .header-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+    }
+
+    .header-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
       border-radius: 999px;
-      border: none;
-      background: #4CAF50;
-      color: #111;
-      font-weight: bold;
+      background: var(--accent-soft);
+      color: #b2ffb8;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .app-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      border: 1px solid transparent;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       cursor: pointer;
+      transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.12s;
     }
-    .result {
-      margin-top: 20px;
-      padding: 14px;
-      background: #1d1d1d;
-      border-radius: 10px;
-      border: 1px solid #333;
+
+    .nav-btn span.icon {
+      font-size: 14px;
     }
-    h4 {
-      margin-top: 20px;
-      margin-bottom: 8px;
-      color: #4CAF50;
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-1px);
+    }
+
+    .nav-btn.active {
+      background: var(--accent);
+      color: #050509;
+      border-color: #66bb6a;
+      box-shadow: 0 0 14px rgba(76, 175, 80, 0.7);
+    }
+
+    .nav-btn.secondary {
+      border-color: rgba(120, 120, 160, 0.7);
+      background: rgba(10, 10, 20, 0.9);
+      color: var(--text-main);
+    }
+
+    /* MAIN */
+    .app-main {
+      flex: 1;
+      max-width: 1180px;
+      margin: 22px auto 32px auto;
+      padding: 0 18px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .card-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #151521;
+      border: 1px solid #2b2b3f;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, #2b2b3f, transparent);
+      margin: 10px 0 16px 0;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+    }
+
+    .dash-card {
+      background: var(--bg-card-soft);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      border: 1px solid #26263a;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+    }
+
+    .dash-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px rgba(0, 0, 0, 0.7);
+      border-color: #3a3a5a;
+    }
+
+    .dash-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .dash-value {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .dash-footer {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-primary {
+      border: none;
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #4CAF50, #66BB6A);
+      color: #050509;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 0 14px rgba(76, 175, 80, 0.7);
+      transition: transform 0.12s, filter 0.12s, box-shadow 0.12s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 0 18px rgba(76, 175, 80, 0.9);
+    }
+
+    .btn-ghost {
+      border-radius: 999px;
+      border: 1px solid #34344a;
+      background: transparent;
+      color: var(--text-main);
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: #4CAF50;
+    }
+
+    .actions-row {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Placeholder de carregamento inicial */
+    .loading-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .app-nav {
+        align-self: stretch;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
     }
   </style>
 </head>
 <body>
-
-<header>
-  <h2>ASSEUF — Sistema de Cálculo</h2>
-  <nav>
-    <button class="active" data-page="inicio">Início</button>
-    <button data-page="calculo">Cadastro & Cálculo</button>
-  </nav>
-</header>
-
-<main id="app"></main>
-
-<script>
-  const state = { pagina: "inicio" };
-
-  function navegar(p) {
-    state.pagina = p;
-    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-    document.querySelector(`nav button[data-page="${p}"]`).classList.add("active");
-    render();
-  }
-
-  document.addEventListener("click", e => {
-    const btn = e.target.closest("[data-page]");
-    if (btn) navegar(btn.dataset.page);
-  });
-
-  function render() {
-    const app = document.getElementById("app");
-
-    if (state.pagina === "inicio") {
-      app.innerHTML = `
-        <div class="card">
-          <h3>Bem-vindo ao ASSEUF</h3>
-          <p>Agora o sistema está sendo construído em 12 partes, sempre funcionando.</p>
-          <p>Use o menu acima para acessar o cálculo das rotas.</p>
-        </div>
-      `;
-    }
-
-    if (state.pagina === "calculo") {
-      app.innerHTML = paginaCalculo();
-    }
-  }
-
-  function paginaCalculo() {
-    return `
-      <div class="card">
-        <h3>Cadastro & Cálculo — Parte 2</h3>
-        <p>Agora com rotas separadas e cálculo mais completo.</p>
-
-        <h4>Rota Sete Lagoas</h4>
-        <div class="grid">
-          <div>
-            <label>Diárias SL</label>
-            <input id="sl_d" type="number" value="20">
-          </div>
-          <div>
-            <label>Passagem SL</label>
-            <input id="sl_p" type="number" value="15">
-          </div>
-          <div>
-            <label>Alunos SL</label>
-            <input id="sl_a" type="number" value="10">
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-circle">A</div>
+        <div class="header-title-block">
+          <div class="header-title">ASSEUF — Gestão de Rotas e Alunos</div>
+          <div class="header-subtitle">Sistema avançado de cálculo, análise e relatórios</div>
+          <div class="header-badge">
+            <span class="badge-dot"></span>
+            Engine de cálculo avançada — modo profissional
           </div>
         </div>
-
-        <h4>Rota Curvelo</h4>
-        <div class="grid">
-          <div>
-            <label>Diárias CV</label>
-            <input id="cv_d" type="number" value="20">
-          </div>
-          <div>
-            <label>Passagem CV</label>
-            <input id="cv_p" type="number" value="18">
-          </div>
-          <div>
-            <label>Alunos CV</label>
-            <input id="cv_a" type="number" value="8">
-          </div>
-        </div>
-
-        <button class="btn" onclick="calcularParte2()">Calcular</button>
-
-        <div id="resultado" class="result" style="display:none;"></div>
       </div>
-    `;
-  }
 
-  function calcularParte2() {
-    const sl_d = Number(sl_d.value);
-    const sl_p = Number(sl_p.value);
-    const sl_a = Number(sl_a.value);
+      <nav class="app-nav" id="nav-root">
+        <!-- Os botões reais virão do app.js -->
+        <button class="nav-btn active" disabled>
+          <span class="icon">⏳</span>
+          <span>Carregando app...</span>
+        </button>
+      </nav>
+    </header>
 
-    const cv_d = Number(cv_d.value);
-    const cv_p = Number(cv_p.value);
-    const cv_a = Number(cv_a.value);
+    <!-- MAIN -->
+    <main class="app-main">
+      <div id="app">
+        <!-- Conteúdo inicial enquanto o app.js não monta tudo -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-block">
+              <div class="card-title">Inicializando o sistema ASSEUF…</div>
+              <div class="card-subtitle">
+                O módulo principal (app.js) ainda será carregado em 12 partes, com cálculo detalhado, relatórios e PDF.
+              </div>
+            </div>
+            <div class="pill">
+              <span>Versão base do layout</span>
+            </div>
+          </div>
 
-    const sl_bruto = sl_d * sl_p;
-    const cv_bruto = cv_d * cv_p;
-    const total_bruto = sl_bruto + cv_bruto;
+          <div class="divider"></div>
 
-    const sl_custoAluno = sl_a > 0 ? sl_bruto / sl_a : 0;
-    const cv_custoAluno = cv_a > 0 ? cv_bruto / cv_a : 0;
+          <div class="dashboard-grid">
+            <div class="dash-card">
+              <div class="dash-label">Status do sistema</div>
+              <div class="dash-value">Em montagem</div>
+              <div class="dash-footer">O app.js será construído em 12 partes grandes.</div>
+            </div>
 
-    const totalAlunos = sl_a + cv_a;
-    const custoAlunoGeral = totalAlunos > 0 ? total_bruto / totalAlunos : 0;
+            <div class="dash-card">
+              <div class="dash-label">Módulos planejados</div>
+              <div class="dash-value">12</div>
+              <div class="dash-footer">Cadastro, cálculo, relatórios, PDF, gráficos, configurações e mais.</div>
+            </div>
 
-    const r = document.getElementById("resultado");
-    r.style.display = "block";
-    r.innerHTML = `
-      <strong>Resultados — Parte 2:</strong><br><br>
+            <div class="dash-card">
+              <div class="dash-label">Estilo visual</div>
+              <div class="dash-value">Dashboard dark</div>
+              <div class="dash-footer">Focado em leitura confortável e visual profissional.</div>
+            </div>
+          </div>
 
-      <strong>Sete Lagoas:</strong><br>
-      Bruto SL: R$ ${sl_bruto.toFixed(2)}<br>
-      Custo por aluno SL: R$ ${sl_custoAluno.toFixed(2)}<br><br>
+          <div class="actions-row">
+            <button class="btn-primary" type="button">
+              <span>🧠</span>
+              <span>Aguardando lógica do app.js</span>
+            </button>
+            <button class="btn-ghost" type="button">
+              <span>📦</span>
+              <span>Pronto para receber as 12 partes</span>
+            </button>
+          </div>
 
-      <strong>Curvelo:</strong><br>
-      Bruto CV: R$ ${cv_bruto.toFixed(2)}<br>
-      Custo por aluno CV: R$ ${cv_custoAluno.toFixed(2)}<br><br>
+          <div class="loading-hint">
+            Assim que o <strong>app.js</strong> estiver pronto, esta tela será substituída pelo painel real do sistema.
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 
-      <strong>Geral:</strong><br>
-      Bruto Total: R$ ${total_bruto.toFixed(2)}<br>
-      Custo por aluno (geral): R$ ${custoAlunoGeral.toFixed(2)}
-    `;
-  }
-
-  render();
-</script>
-
+  <!-- Aqui entra o seu app.js gigante em 12 partes -->
+  <script src="app.js"></script>
 </body>
 </html>
