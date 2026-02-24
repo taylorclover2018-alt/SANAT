@@ -31,8 +31,12 @@
   <!-- Área onde o JavaScript vai renderizar as páginas -->
   <main id="app"></main>
 
-  <!-- Bibliotecas externas -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf"></script>
+  <!-- Bibliotecas externas (ORDEM OBRIGATÓRIA) -->
+
+  <!-- jsPDF (versão UMD, mais estável) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Chart.js para gráficos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Script principal -->
