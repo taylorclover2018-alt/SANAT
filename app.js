@@ -607,24 +607,6 @@ function layoutShellTopo() {
                 border-color: #666;
             }
 
-            .pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 4px 10px;
-                border-radius: 999px;
-                background: #222;
-                font-size: 11px;
-                opacity: 0.85;
-            }
-
-            .pill-dot {
-                width: 6px;
-                height: 6px;
-                border-radius: 50%;
-                background: #4CAF50;
-            }
-
             .dashboard-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -662,51 +644,6 @@ function layoutShellTopo() {
             .dash-footer {
                 font-size: 11px;
                 opacity: 0.7;
-            }
-
-            .tag {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                padding: 2px 8px;
-                border-radius: 999px;
-                font-size: 10px;
-                background: #263238;
-                color: #B0BEC5;
-            }
-
-            .tag-green {
-                background: rgba(76, 175, 80, 0.12);
-                color: #A5D6A7;
-            }
-
-            .tag-blue {
-                background: rgba(33, 150, 243, 0.12);
-                color: #90CAF9;
-            }
-
-            .tag-amber {
-                background: rgba(255, 193, 7, 0.12);
-                color: #FFE082;
-            }
-
-            .app-footer-hint {
-                margin-top: 14px;
-                font-size: 11px;
-                opacity: 0.6;
-            }
-
-            @media (max-width: 720px) {
-                .app-header {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 10px;
-                }
-
-                .app-nav {
-                    flex-wrap: wrap;
-                    justify-content: flex-start;
-                }
             }
         </style>
 
@@ -758,11 +695,11 @@ function renderPaginaAtual() {
         case "inicio":
             return paginaInicioPremium();
         case "calculo":
-            return paginaCalculoPremiumPlaceholder();
+            return paginaCalculoPremium();   // ← AQUI ESTÁ A TROCA IMPORTANTE
         case "relatorios":
-            return paginaRelatoriosPlaceholder();
+            return paginaRelatorios();
         case "pdf":
-            return paginaPDFPlaceholder();
+            return paginaPDF();
         case "config":
             return paginaConfigPlaceholder();
         default:
@@ -771,7 +708,7 @@ function renderPaginaAtual() {
 }
 
 // ----------------------------------------------------------------------
-// PÁGINA INICIAL PREMIUM (DASHBOARD RESUMO)
+// PÁGINA INICIAL PREMIUM
 // ----------------------------------------------------------------------
 
 function paginaInicioPremium() {
@@ -792,12 +729,6 @@ function paginaInicioPremium() {
     const mediaMensalidadeGeral =
         alunosAcum > 0 ? liquidoAcum / alunosAcum : 0;
 
-    const ultimoMes = meses.sort().at(-1);
-    const ultimoResumo =
-        ultimoMes && state.historico[ultimoMes]
-            ? state.historico[ultimoMes].resumo
-            : null;
-
     return `
         <div class="card">
             <h2 class="section-title">Painel Geral</h2>
@@ -810,35 +741,21 @@ function paginaInicioPremium() {
                 <div class="dash-card">
                     <div class="dash-label">Meses com registros</div>
                     <div class="dash-value">${totalMeses}</div>
-                    <div class="dash-footer">
-                        <span class="tag tag-blue">Histórico</span>
-                        <span style="margin-left:6px;">Cada mês pode ter vários cálculos.</span>
-                    </div>
                 </div>
 
                 <div class="dash-card">
                     <div class="dash-label">Bruto acumulado</div>
                     <div class="dash-value">${formatarMoeda(brutoAcum)}</div>
-                    <div class="dash-footer">
-                        <span class="tag tag-green">Receita</span>
-                        Soma de todas as rotas e cálculos registrados.
-                    </div>
                 </div>
 
                 <div class="dash-card">
                     <div class="dash-label">Líquido acumulado</div>
                     <div class="dash-value">${formatarMoeda(liquidoAcum)}</div>
-                    <div class="dash-footer">
-                        <span class="tag tag-amber">Após auxílios e descontos</span>
-                    </div>
                 </div>
 
                 <div class="dash-card">
-                    <div class="dash-label">Alunos totais (histórico)</div>
+                    <div class="dash-label">Alunos totais</div>
                     <div class="dash-value">${alunosAcum}</div>
-                    <div class="dash-footer">
-                        <span class="tag">Média por aluno: ${formatarMoeda(mediaMensalidadeGeral)}</span>
-                    </div>
                 </div>
             </div>
 
@@ -858,69 +775,23 @@ function paginaInicioPremium() {
                     <span>Gerar PDF do último cálculo</span>
                 </button>
             </div>
-
-            <div class="app-footer-hint">
-                Dica: use <strong>CTRL + 2</strong> para ir direto ao Cadastro & Cálculo,
-                <strong>CTRL + 3</strong> para Relatórios e <strong>CTRL + 4</strong> para PDF.
-            </div>
         </div>
     `;
 }
 
 // ----------------------------------------------------------------------
-// PLACEHOLDERS (serão substituídos nas próximas partes)
+// PLACEHOLDERS (apenas para Configurações)
 // ----------------------------------------------------------------------
-
-function paginaCalculoPremiumPlaceholder() {
-    return `
-        <div class="card">
-            <h2 class="section-title">Cadastro & Cálculo</h2>
-            <p class="section-subtitle">
-                A próxima parte vai transformar esta tela em um formulário ultra detalhado,
-                com rotas separadas, veículos, alunos com/sem desconto, e muito mais.
-            </p>
-            <div class="divider"></div>
-            <p>Segure um pouco: a PARTE 3 vai entrar aqui com tudo.</p>
-        </div>
-    `;
-}
-
-function paginaRelatoriosPlaceholder() {
-    return `
-        <div class="card">
-            <h2 class="section-title">Relatórios Avançados</h2>
-            <p class="section-subtitle">
-                Em breve: filtros, tabelas, gráficos e análises profundas sobre todas as rotas e meses.
-            </p>
-            <div class="divider"></div>
-            <p>A PARTE 4 vai substituir este conteúdo por um painel analítico completo.</p>
-        </div>
-    `;
-}
-
-function paginaPDFPlaceholder() {
-    return `
-        <div class="card">
-            <h2 class="section-title">PDF Detalhado</h2>
-            <p class="section-subtitle">
-                Aqui você vai gerar relatórios em PDF com tabelas, explicações matemáticas,
-                valores por aluno, por rota, por diária e muito mais.
-            </p>
-            <div class="divider"></div>
-            <p>A PARTE 5 vai trazer o gerador de PDF monstruoso.</p>
-        </div>
-    `;
-}
 
 function paginaConfigPlaceholder() {
     return `
         <div class="card">
             <h2 class="section-title">Configurações</h2>
             <p class="section-subtitle">
-                Preferências de tema, exibição, comportamento e ajustes finos do sistema.
+                Preferências do sistema.
             </p>
             <div class="divider"></div>
-            <p>A PARTE 6/7 vai transformar esta tela em um painel de configurações avançadas.</p>
+            <p>Configurações avançadas virão na Parte 7.</p>
         </div>
     `;
 }
@@ -932,7 +803,7 @@ function paginaConfigPlaceholder() {
 function aplicarTemaAtual() {
     const tema = state.preferencias.tema || CONFIG.temaPadrao;
     document.body.dataset.tema = tema;
-}
+}}
 // ======================================================================
 // PARTE 3.1 — UI PREMIUM DO CADASTRO & CÁLCULO
 // ======================================================================
