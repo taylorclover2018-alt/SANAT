@@ -1,46 +1,187 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Sistema de Cálculo das Rotas - ASSEUF</title>
-
-  <!-- Responsividade -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Fonte e estilos -->
-  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
+    nav button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      background: #222;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    nav button.active {
+      background: #4CAF50;
+      color: #111;
+    }
+    main {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background: #181818;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #333;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #222;
+      color: #fff;
+    }
+    .btn {
+      margin-top: 16px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #4CAF50;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 14px;
+      background: #1d1d1d;
+      border-radius: 10px;
+      border: 1px solid #333;
+    }
+  </style>
 </head>
-
 <body>
 
-  <!-- Cabeçalho com logo e menu -->
-  <header>
-    <div class="logo-area">
-      <img src="logo.png" alt="Logo ASSEUF" class="logo" />
-      <h1>Sistema de Cálculo das Rotas - ASSEUF</h1>
-    </div>
+<header>
+  <h2>ASSEUF — Sistema de Cálculo</h2>
+  <nav>
+    <button class="active" data-page="inicio">Início</button>
+    <button data-page="calculo">Cadastro & Cálculo</button>
+  </nav>
+</header>
 
-    <nav>
-      <button data-page="inicio">Início</button>
-      <button data-page="calculo">Cadastro e Cálculo</button>
-      <button data-page="relatorios">Relatórios</button>
-      <button data-page="pdf">PDF</button>
-    </nav>
-  </header>
+<main id="app"></main>
 
-  <!-- Área onde o JavaScript vai renderizar as páginas -->
-  <main id="app"></main>
+<script>
+  const state = { pagina: "inicio" };
 
-  <!-- Bibliotecas externas (ORDEM OBRIGATÓRIA) -->
+  function navegar(p) {
+    state.pagina = p;
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.querySelector(`nav button[data-page="${p}"]`).classList.add("active");
+    render();
+  }
 
-  <!-- jsPDF (versão UMD, mais estável) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-page]");
+    if (btn) navegar(btn.dataset.page);
+  });
 
-  <!-- Chart.js para gráficos -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  function render() {
+    const app = document.getElementById("app");
 
-  <!-- Script principal -->
-  <script src="app.js"></script>
+    if (state.pagina === "inicio") {
+      app.innerHTML = `
+        <div class="card">
+          <h3>Bem-vindo ao ASSEUF</h3>
+          <p>Use o menu acima para acessar o cálculo das rotas.</p>
+        </div>
+      `;
+    }
+
+    if (state.pagina === "calculo") {
+      app.innerHTML = `
+        <div class="card">
+          <h3>Cadastro & Cálculo</h3>
+          <div class="grid">
+            <div>
+              <label>Diárias SL</label>
+              <input id="sl_d" type="number" value="20">
+            </div>
+            <div>
+              <label>Passagem SL</label>
+              <input id="sl_p" type="number" value="15">
+            </div>
+            <div>
+              <label>Alunos SL</label>
+              <input id="sl_a" type="number" value="10">
+            </div>
+
+            <div>
+              <label>Diárias CV</label>
+              <input id="cv_d" type="number" value="20">
+            </div>
+            <div>
+              <label>Passagem CV</label>
+              <input id="cv_p" type="number" value="18">
+            </div>
+            <div>
+              <label>Alunos CV</label>
+              <input id="cv_a" type="number" value="8">
+            </div>
+          </div>
+
+          <button class="btn" onclick="calcular()">Calcular</button>
+
+          <div id="resultado" class="result" style="display:none;"></div>
+        </div>
+      `;
+    }
+  }
+
+  function calcular() {
+    const sl_d = Number(sl_d.value);
+    const sl_p = Number(sl_p.value);
+    const sl_a = Number(sl_a.value);
+
+    const cv_d = Number(cv_d.value);
+    const cv_p = Number(cv_p.value);
+    const cv_a = Number(cv_a.value);
+
+    const sl_bruto = sl_d * sl_p;
+    const cv_bruto = cv_d * cv_p;
+    const total = sl_bruto + cv_bruto;
+
+    const totalAlunos = sl_a + cv_a;
+    const custoAluno = totalAlunos > 0 ? total / totalAlunos : 0;
+
+    const r = document.getElementById("resultado");
+    r.style.display = "block";
+    r.innerHTML = `
+      <strong>Resultados:</strong><br>
+      SL Bruto: R$ ${sl_bruto.toFixed(2)}<br>
+      CV Bruto: R$ ${cv_bruto.toFixed(2)}<br>
+      Total: R$ ${total.toFixed(2)}<br><br>
+      Custo por aluno: R$ ${custoAluno.toFixed(2)}
+    `;
+  }
+
+  render();
+</script>
 
 </body>
 </html>
