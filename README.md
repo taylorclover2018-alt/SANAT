@@ -149,7 +149,7 @@ em qualquer navegador moderno.
 
 👨‍💻 Autor
 
-Projeto desenvolvido por taylor com apoio do Copilot.  
+Projeto desenvolvido por taylor.  
 Objetivo: facilitar e automatizar o cálculo das rotas da ASSEUF.
 
 ---
