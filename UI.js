@@ -7,18 +7,12 @@ UI.js — Componentes Visuais Globais
 const UI = {
 
     // ---------------------------------------------------------
-    // LOGO
+    // LOGO (USANDO logo.png NA RAIZ DO PROJETO)
     // ---------------------------------------------------------
     logo() {
         return `
-            <div style="
-                font-size:26px;
-                font-weight:700;
-                color:var(--accent);
-                margin-bottom:10px;
-            ">
-                ASSEUF
-            </div>
+            <img src="logo.png" 
+                 style="height:60px; margin-bottom:15px; display:block;">
         `;
     },
 
@@ -111,6 +105,118 @@ const UI = {
             </div>
         `;
     },
+
+    // ---------------------------------------------------------
+    // INPUT PADRÃO
+    // ---------------------------------------------------------
+    input(id, placeholder, value = "") {
+        return `
+            <input id="${id}" placeholder="${placeholder}" value="${value}" style="
+                width:100%;
+                padding:10px;
+                border-radius:8px;
+                border:1px solid var(--border-soft);
+                background:#0d0d15;
+                color:var(--text-main);
+                margin:6px 0 14px 0;
+            ">
+        `;
+    },
+
+    // ---------------------------------------------------------
+    // TEXTAREA
+    // ---------------------------------------------------------
+    textarea(id, placeholder, value = "") {
+        return `
+            <textarea id="${id}" placeholder="${placeholder}" style="
+                width:100%;
+                height:100px;
+                padding:10px;
+                border-radius:8px;
+                border:1px solid var(--border-soft);
+                background:#0d0d15;
+                color:var(--text-main);
+                margin:6px 0 14px 0;
+            ">${value}</textarea>
+        `;
+    },
+
+    // ---------------------------------------------------------
+    // SELECT
+    // ---------------------------------------------------------
+    select(id, optionsHtml) {
+        return `
+            <select id="${id}" style="
+                width:100%;
+                padding:10px;
+                border-radius:8px;
+                border:1px solid var(--border-soft);
+                background:#0d0d15;
+                color:var(--text-main);
+                margin:6px 0 14px 0;
+            ">
+                ${optionsHtml}
+            </select>
+        `;
+    },
+
+    // ---------------------------------------------------------
+    // AVATAR DE USUÁRIO
+    // ---------------------------------------------------------
+    avatar(usuario, size = 40) {
+        const letra = usuario?.charAt(0)?.toUpperCase() || "?";
+
+        return `
+            <div style="
+                width:${size}px;
+                height:${size}px;
+                border-radius:50%;
+                background:var(--accent-soft);
+                color:var(--accent);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-weight:700;
+                font-size:${size * 0.45}px;
+                margin-right:8px;
+            ">
+                ${letra}
+            </div>
+        `;
+    },
+
+    // ---------------------------------------------------------
+    // LINHA DE LISTA
+    // ---------------------------------------------------------
+    linha(titulo, subtitulo = "") {
+        return `
+            <div style="
+                padding:12px;
+                border-bottom:1px solid var(--border-soft);
+            ">
+                <div style="font-weight:600;">${titulo}</div>
+                <div style="font-size:13px; color:var(--text-muted);">${subtitulo}</div>
+            </div>
+        `;
+    },
+
+    // ---------------------------------------------------------
+    // LOADER
+    // ---------------------------------------------------------
+    loader() {
+        return `
+            <div style="
+                width:100%;
+                text-align:center;
+                padding:40px;
+                font-size:18px;
+                color:var(--text-muted);
+            ">
+                Carregando...
+            </div>
+        `;
+    }
+};    },
 
     // ---------------------------------------------------------
     // INPUT PADRÃO
