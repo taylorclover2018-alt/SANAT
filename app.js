@@ -1,7 +1,6 @@
 /*  
 ===========================================================
-APP.JS — SUPER ASSEUF ENTERPRISE PRO (COMPLETO)
-PARTE 1/5
+ASSEUF ENTERPRISE PRO — VERSÃO SEM LOGIN
 ===========================================================
 */
 
@@ -36,7 +35,7 @@ const PERFIS = {
 // STATE GLOBAL
 // ---------------------------------------------------------
 let state = {
-    paginaAtual: "login",
+    paginaAtual: "home",
     usuarioLogado: null,
     usuarios: [],
     rotas: [],
@@ -73,6 +72,8 @@ function carregarBackup() {
             state = JSON.parse(salvo);
         } else {
             criarUsuariosIniciais();
+            // Já loga como admin
+            state.usuarioLogado = state.usuarios.find(u => u.usuario === "admin");
             salvarBackup();
         }
     } catch (e) {
@@ -201,16 +202,11 @@ function mudarPagina(pagina, param) {
 }
 
 // ---------------------------------------------------------
-// MENU LATERAL
+// MENU LATERAL (SEM BOTÃO SAIR)
 // ---------------------------------------------------------
 function inserirMenuLateral() {
     const menu = document.getElementById("menuLateral");
     if (!menu) return;
-
-    if (!state.usuarioLogado) {
-        menu.innerHTML = "";
-        return;
-    }
 
     let html = `
         <div style="padding:10px;">
@@ -246,53 +242,10 @@ function inserirMenuLateral() {
     html += `
             <hr>
             <button class="btn btn-secondary" onclick="alternarTema()">Tema: ${state.tema === "claro" ? "☀️ Claro" : "🌙 Escuro"}</button>
-            <button class="btn btn-danger" onclick="logout()">Sair</button>
         </div>
     `;
 
     menu.innerHTML = html;
-}
-
-// ---------------------------------------------------------
-// LOGIN / LOGOUT
-// ---------------------------------------------------------
-function paginaLogin() {
-    return `
-        <div class="container">
-            ${UI.logo()}
-            ${UI.titulo("Login")}
-            <div class="card">
-                <label>Usuário:</label>
-                <input id="loginUsuario">
-                <label>Senha:</label>
-                <input id="loginSenha" type="password">
-                <button class="btn btn-primary" onclick="fazerLogin()">Entrar</button>
-            </div>
-        </div>
-    `;
-}
-
-function fazerLogin() {
-    const usuario = document.getElementById("loginUsuario").value.trim();
-    const senha = document.getElementById("loginSenha").value.trim();
-
-    const u = state.usuarios.find(x => x.usuario === usuario && x.senha === senha);
-    if (!u) {
-        notificar("Usuário ou senha inválidos.", "error");
-        return;
-    }
-
-    state.usuarioLogado = u;
-    salvarBackup();
-    auditar("Login", `Usuário ${u.usuario} entrou`, "login");
-    mudarPagina("home");
-}
-
-function logout() {
-    auditar("Logout", `Usuário ${state.usuarioLogado?.usuario || ""} saiu`, "logout");
-    state.usuarioLogado = null;
-    salvarBackup();
-    mudarPagina("login");
 }
 
 // ---------------------------------------------------------
@@ -310,12 +263,6 @@ function paginaHome() {
         </div>
     `;
 }
-/*  
-===========================================================
-APP.JS — SUPER ASSEUF ENTERPRISE PRO
-PARTE 2/5
-===========================================================
-*/
 
 // ---------------------------------------------------------
 // BACKUP (EXPORTAR / IMPORTAR)
@@ -611,12 +558,6 @@ function enviarMensagemChat(destino) {
     auditar("Enviou mensagem", `Para ${destino}`);
     mudarPagina("chatConversa", destino);
 }
-/*  
-===========================================================
-APP.JS — SUPER ASSEUF ENTERPRISE PRO
-PARTE 3/5
-===========================================================
-*/
 
 // ---------------------------------------------------------
 // CHAT EM GRUPO
@@ -904,12 +845,6 @@ function excluirTarefa(id) {
     auditar("Excluiu tarefa", id);
     mudarPagina("tarefas");
 }
-/*  
-===========================================================
-APP.JS — SUPER ASSEUF ENTERPRISE PRO
-PARTE 4/5
-===========================================================
-*/
 
 // ---------------------------------------------------------
 // DRIVE CORPORATIVO
@@ -1229,12 +1164,6 @@ function atualizarBotaoNotificacoesMenu() {
     if (!botao) return;
     botao.innerHTML = qtd > 0 ? `🔔 Notificações (${qtd})` : `🔔 Notificações`;
 }
-/*  
-===========================================================
-APP.JS — SUPER ASSEUF ENTERPRISE PRO
-PARTE 5/5
-===========================================================
-*/
 
 // ---------------------------------------------------------
 // LOGS TÉCNICOS
@@ -1757,11 +1686,6 @@ function salvarChangelog() {
 function render(param1, param2) {
     aplicarTema();
 
-    // Se não estiver logado e não for página de login, redireciona
-    if (!state.usuarioLogado && state.paginaAtual !== "login") {
-        state.paginaAtual = "login";
-    }
-
     // Bloqueio de páginas de criação/edição para associados
     const paginasRestritas = ["novaRota", "novoVeiculo", "novoAluno", "novaTarefa", "novoEvento", "novoTicket", "editarPerfil", "gerenciarPermissoes", "novoUsuario", "gerenciarAvisos", "changelog"];
     if (isAssociado() && paginasRestritas.includes(state.paginaAtual)) {
@@ -1799,7 +1723,6 @@ function render(param1, param2) {
     }
 
     // Renderização de cada página
-    if (state.paginaAtual === "login") { renderSeguro(paginaLogin()); return; }
     if (state.paginaAtual === "home") { renderSeguro(paginaHome()); return; }
     if (state.paginaAtual === "backup") { renderSeguro(paginaBackup()); return; }
     if (state.paginaAtual === "rotas") { renderSeguro(paginaRotas()); return; }
