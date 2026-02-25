@@ -27,10 +27,92 @@ body {
     min-height: 100vh;
 }
 
-#root {
+#app, #root {
     min-height: 100vh;
 }
 
+/* Layout */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+#menuLateral {
+    width: var(--menu-largura);
+    background: #111827;
+    color: #f9fafb;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.menu-usuario {
+    padding: 12px;
+    border-radius: var(--radius);
+    background: rgba(15,23,42,0.9);
+}
+
+.menu-usuario-nome {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.menu-usuario-perfil {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.menu-grupo {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.menu-botao {
+    width: 100%;
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    color: #e5e7eb;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background var(--transicao), transform var(--transicao);
+}
+
+.menu-botao:hover {
+    background: rgba(55,65,81,0.9);
+    transform: translateX(2px);
+}
+
+.menu-botao-principal {
+    background: #2563eb;
+    color: #f9fafb;
+}
+
+.menu-botao-principal:hover {
+    background: #1d4ed8;
+}
+
+.conteudo-principal {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.container {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* Cards */
 .card {
     background: var(--card);
     border-radius: var(--radius);
@@ -39,19 +121,11 @@ body {
     margin-bottom: 16px;
 }
 
-button {
-    border: none;
-    border-radius: 999px;
-    padding: 8px 16px;
+/* Formulários */
+label {
+    display: block;
     font-size: 13px;
-    cursor: pointer;
-    background: var(--primaria);
-    color: #ffffff;
-    transition: background var(--transicao);
-}
-
-button:hover {
-    background: #1d4ed8;
+    margin-bottom: 4px;
 }
 
 input, select {
@@ -64,6 +138,75 @@ input, select {
     font-size: 13px;
     margin-bottom: 10px;
     outline: none;
+    transition: border var(--transicao), box-shadow var(--transicao), background var(--transicao);
+}
+
+input:focus, select:focus {
+    border-color: var(--primaria);
+    box-shadow: 0 0 0 1px rgba(37,99,235,0.4);
+    background: #ffffff;
+}
+
+button {
+    border: none;
+    outline: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--primaria);
+    color: #ffffff;
+    transition: background var(--transicao), transform var(--transicao), box-shadow var(--transicao);
+    box-shadow: 0 4px 10px rgba(37,99,235,0.35);
+}
+
+button:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+}
+
+.botao-perigo {
+    background: var(--perigo);
+    box-shadow: 0 4px 10px rgba(185,28,28,0.4);
+}
+
+.botao-perigo:hover {
+    background: #b91c1c;
+}
+
+/* Tabelas */
+.tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.tabela th,
+.tabela td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.tabela th {
+    background: var(--card2);
+    font-weight: 600;
+}
+
+/* Toasts */
+#toastArea {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
 }
 
 .toast {
@@ -74,19 +217,16 @@ input, select {
     box-shadow: var(--sombra);
     font-size: 13px;
     color: #ffffff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
+
 .toast-info { background: var(--info); }
 .toast-success { background: var(--sucesso); }
 .toast-error { background: var(--perigo); }
-#toastArea {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 9999;
+
+/* Utilitários */
+.veiculo-item, .aluno-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    border: 1px solid var(--border, #ddd);
+    border-radius: 4px;
 }
