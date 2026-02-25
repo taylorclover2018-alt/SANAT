@@ -1,762 +1,1909 @@
-:root {
-    --primary: #4361ee;
-    --primary-light: #4895ef;
-    --primary-dark: #3f37c9;
-    --secondary: #f72585;
-    --success: #4cc9f0;
-    --warning: #f8961e;
-    --danger: #f94144;
-    --dark: #1e1e2f;
-    --light: #f8f9fa;
-    --gray-100: #f1f3f5;
-    --gray-200: #e9ecef;
-    --gray-300: #dee2e6;
-    --gray-400: #ced4da;
-    --gray-500: #adb5bd;
-    --text-primary: #212529;
-    --text-secondary: #495057;
-    --text-muted: #6c757d;
-    --border-color: #e0e0e0;
-    --card-bg: #ffffff;
-    --body-bg: #f4f7fc;
-    --sidebar-bg: #1a1a2e;
-    --sidebar-text: #e0e0e0;
-    --sidebar-hover: #16213e;
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
-    --shadow-md: 0 8px 16px rgba(0,0,0,0.06);
-    --shadow-lg: 0 16px 32px rgba(0,0,0,0.08);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 20px;
-    --transition: all 0.2s ease;
-}
-
-[data-theme="dark"] {
-    --primary: #667eea;
-    --primary-light: #764ba2;
-    --primary-dark: #5a67d8;
-    --text-primary: #f1f3f5;
-    --text-secondary: #cbd5e0;
-    --text-muted: #a0aec0;
-    --border-color: #2d3748;
-    --card-bg: #2d3748;
-    --body-bg: #1a202c;
-    --sidebar-bg: #0f172a;
-    --sidebar-text: #e2e8f0;
-    --sidebar-hover: #1e293b;
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
-    --shadow-md: 0 8px 16px rgba(0,0,0,0.4);
-    --shadow-lg: 0 16px 32px rgba(0,0,0,0.5);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    background: var(--body-bg);
-    color: var(--text-primary);
-    line-height: 1.6;
-    transition: var(--transition);
-}
-
-/* Layout */
-.app-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-/* Sidebar Premium */
-.sidebar {
-    width: 280px;
-    background: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    padding: 2rem 1.5rem;
-    position: fixed;
-    height: 100vh;
-    overflow-y: auto;
-    backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(255,255,255,0.05);
-    transition: var(--transition);
-    z-index: 1000;
-}
-
-.sidebar-header {
-    margin-bottom: 2.5rem;
-    text-align: center;
-}
-
-.sidebar-header .logo {
-    font-size: 1.8rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
-}
-
-.sidebar-header .subtitle {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    letter-spacing: 1px;
-}
-
-.user-info {
-    background: rgba(255,255,255,0.05);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    margin-bottom: 2rem;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255,255,255,0.1);
-    animation: slideIn 0.3s ease;
-}
-
-.user-name {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-}
-
-.user-role {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.role-badge {
-    background: var(--primary);
-    color: white;
-    padding: 0.15rem 0.5rem;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 600;
-}
-
-/* Menu Navegação */
-.nav-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.875rem 1rem;
-    border-radius: var(--radius-md);
-    color: var(--sidebar-text);
-    text-decoration: none;
-    transition: var(--transition);
-    border: none;
-    background: transparent;
-    width: 100%;
-    text-align: left;
-    font-size: 0.95rem;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-item i {
-    width: 24px;
-    font-size: 1.2rem;
-    transition: var(--transition);
-}
-
-.nav-item:hover {
-    background: var(--sidebar-hover);
-    transform: translateX(5px);
-}
-
-.nav-item:hover i {
-    color: var(--primary-light);
-    transform: scale(1.1);
-}
-
-.nav-item.active {
-    background: var(--primary);
-    color: white;
-    box-shadow: var(--shadow-md);
-}
-
-.nav-item.active i {
-    color: white;
-}
-
-.nav-item.logout {
-    margin-top: 2rem;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    border-radius: 0;
-    padding-top: 1.5rem;
-}
-
-.nav-item.logout:hover {
-    background: transparent;
-    color: var(--danger);
-}
-
-/* Main Content */
-.main-content {
-    flex: 1;
-    margin-left: 280px;
-    padding: 2rem;
-    min-height: 100vh;
-    transition: var(--transition);
-}
-
-/* Cards Modernos */
-.card {
-    background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-    transition: var(--transition);
-    animation: fadeInUp 0.4s ease;
-}
-
-.card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.card-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.card-title i {
-    color: var(--primary);
-}
-
-/* Formulários Premium */
-.form-group {
-    margin-bottom: 1.25rem;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text-secondary);
-}
-
-.form-label i {
-    margin-right: 0.5rem;
-    color: var(--primary);
-    width: 16px;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    background: var(--body-bg);
-    border: 2px solid var(--border-color);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-    font-size: 0.95rem;
-    transition: var(--transition);
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* Botões */
-.btn {
-    padding: 0.875rem 1.5rem;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: var(--primary);
-    color: white;
-    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(67, 97, 238, 0.35);
-    background: var(--primary-dark);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.btn-secondary {
-    background: var(--gray-400);
-    color: var(--dark);
-    box-shadow: none;
-}
-
-.btn-secondary:hover {
-    background: var(--gray-500);
-}
-
-.btn-success {
-    background: var(--success);
-    box-shadow: 0 4px 12px rgba(76, 201, 240, 0.25);
-}
-
-.btn-success:hover {
-    background: #3ab7dc;
-}
-
-.btn-danger {
-    background: var(--danger);
-    box-shadow: 0 4px 12px rgba(249, 65, 68, 0.25);
-}
-
-.btn-danger:hover {
-    background: #e03a3d;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 2px solid var(--primary);
-    color: var(--primary);
-    box-shadow: none;
-}
-
-.btn-outline:hover {
-    background: var(--primary);
-    color: white;
-}
-
-.btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-}
-
-.btn-group {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-/* Tabelas */
-.table-container {
-    overflow-x: auto;
-    border-radius: var(--radius-md);
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    margin-bottom: 1.5rem;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-
-th {
-    background: var(--body-bg);
-    padding: 1rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    text-align: left;
-    border-bottom: 2px solid var(--border-color);
-}
-
-td {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-primary);
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-tr:hover td {
-    background: var(--body-bg);
-}
-
-.table-total {
-    background: var(--primary);
-    color: white;
-    font-weight: 700;
-}
-
-.table-total td {
-    color: white;
-    background: var(--primary);
-}
-
-/* Grid Layout */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-/* Badges */
-.badge {
-    display: inline-block;
-    padding: 0.35rem 1rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.badge-primary {
-    background: rgba(67, 97, 238, 0.15);
-    color: var(--primary);
-}
-
-.badge-success {
-    background: rgba(76, 201, 240, 0.15);
-    color: var(--success);
-}
-
-.badge-warning {
-    background: rgba(248, 150, 30, 0.15);
-    color: var(--warning);
-}
-
-.badge-danger {
-    background: rgba(249, 65, 68, 0.15);
-    color: var(--danger);
-}
-
-/* Toasts */
-.toast-container {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.toast {
-    min-width: 320px;
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius-md);
-    background: var(--card-bg);
-    color: var(--text-primary);
-    box-shadow: var(--shadow-lg);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    animation: slideInRight 0.3s ease;
-    border-left: 4px solid;
-}
-
-.toast.info {
-    border-left-color: var(--primary);
-}
-
-.toast.success {
-    border-left-color: var(--success);
-}
-
-.toast.error {
-    border-left-color: var(--danger);
-}
-
-.toast i {
-    font-size: 1.2rem;
-}
-
-.toast.info i { color: var(--primary); }
-.toast.success i { color: var(--success); }
-.toast.error i { color: var(--danger); }
-
-.toast-content {
-    flex: 1;
-}
-
-.toast-title {
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.toast-message {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-/* Veículo Item */
-.veiculo-item {
-    background: var(--body-bg);
-    border-radius: var(--radius-md);
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    border: 2px solid var(--border-color);
-    transition: var(--transition);
-    position: relative;
-}
-
-.veiculo-item:hover {
-    border-color: var(--primary);
-    transform: translateX(5px);
-}
-
-.veiculo-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.veiculo-tipo {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--primary);
-}
-
-.veiculo-custos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-}
-
-.veiculo-campo {
-    background: var(--card-bg);
-    padding: 0.75rem;
-    border-radius: var(--radius-sm);
-}
-
-.veiculo-campo label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 0.25rem;
-    font-weight: 600;
-}
-
-.veiculo-campo .valor {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.veiculo-campo .valor small {
-    font-size: 0.75rem;
-    font-weight: normal;
-    color: var(--text-muted);
-}
-
-/* Animações */
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
+// ==============================================
+// ASSEUF ENTERPRISE PRO - SISTEMA DE GESTÃO DE ROTAS
+// PARTE 1/2 - ESTADO GLOBAL E FUNÇÕES PRINCIPAIS
+// ==============================================
+
+const state = {
+    paginaAtual: 'home',
+    usuarioLogado: null,
+    usuarios: [
+        { usuario: 'admin', senha: '0000', perfil: 'admin', nome: 'Administrador' },
+        { usuario: 'taylor', senha: '1296', perfil: 'taylor', nome: 'Taylor' },
+        { usuario: 'operador', senha: '4321', perfil: 'operador', nome: 'Operador' },
+        { usuario: 'visitante', senha: '1234', perfil: 'visitante', nome: 'Visitante' }
+    ],
+    rotas: [],
+    historicoCalculos: [],
+    calculoAtual: null,
+    tema: 'light',
+    notificacoes: [],
+    veiculosPadrao: [
+        { id: 'onibus', nome: 'Ônibus', valorDiaria: 691.00 },
+        { id: 'micro', nome: 'Micro-ônibus', valorDiaria: 532.00 },
+        { id: 'van', nome: 'Van 15 lugares', valorDiaria: 425.00 }
+    ]
+};
+
+// ========== FUNÇÕES DE NOTIFICAÇÃO ==========
+function mostrarNotificacao(mensagem, tipo = 'info', duracao = 3000) {
+    const container = document.getElementById('toast-area');
+    if (!container) return;
+
+    const id = 'toast-' + Date.now();
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    toast.id = id;
+    
+    const icones = {
+        info: 'fa-circle-info',
+        success: 'fa-circle-check',
+        error: 'fa-circle-exclamation',
+        warning: 'fa-triangle-exclamation'
+    };
+
+    const titulos = {
+        info: 'INFORMAÇÃO',
+        success: 'SUCESSO',
+        error: 'ERRO',
+        warning: 'ATENÇÃO'
+    };
+
+    toast.innerHTML = `
+        <i class="fas ${icones[tipo] || icones.info}"></i>
+        <div class="toast-content">
+            <div class="toast-title">${titulos[tipo] || 'INFO'}</div>
+            <div class="toast-message">${mensagem}</div>
+        </div>
+        <button class="toast-close" onclick="fecharNotificacao('${id}')">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.style.opacity = '0';
+            elemento.style.transform = 'translateX(20px)';
+            setTimeout(() => elemento.remove(), 300);
+        }
+    }, duracao);
+}
+
+window.fecharNotificacao = (id) => {
+    const toast = document.getElementById(id);
+    if (toast) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => toast.remove(), 300);
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+};
+
+// ========== FUNÇÕES DE TEMA ==========
+function alternarTema() {
+    state.tema = state.tema === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', state.tema);
+    mostrarNotificacao(`Tema ${state.tema === 'light' ? 'claro' : 'escuro'} ativado`, 'info');
+    render();
+}
+
+// ========== FUNÇÕES DE BACKUP ==========
+function salvarBackup() {
+    const backup = {
+        usuarios: state.usuarios,
+        rotas: state.rotas,
+        historicoCalculos: state.historicoCalculos,
+        data: new Date().toISOString()
+    };
+    localStorage.setItem('assef_backup', JSON.stringify(backup));
+    mostrarNotificacao('Backup salvo com sucesso!', 'success');
+}
+
+function carregarBackup() {
+    const backup = localStorage.getItem('assef_backup');
+    if (backup) {
+        try {
+            const dados = JSON.parse(backup);
+            state.usuarios = dados.usuarios || state.usuarios;
+            state.rotas = dados.rotas || [];
+            state.historicoCalculos = dados.historicoCalculos || [];
+            mostrarNotificacao('Backup carregado com sucesso!', 'success');
+        } catch (error) {
+            mostrarNotificacao('Erro ao carregar backup', 'error');
+        }
     }
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
+function exportarBackup() {
+    const backup = {
+        usuarios: state.usuarios,
+        rotas: state.rotas,
+        historicoCalculos: state.historicoCalculos,
+        data: new Date().toISOString(),
+        versao: '2.0'
+    };
+    
+    const dataStr = JSON.stringify(backup, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assef_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrarNotificacao('Backup exportado com sucesso!', 'success');
+}
+
+function importarBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const backup = JSON.parse(e.target.result);
+            if (backup.usuarios) state.usuarios = backup.usuarios;
+            if (backup.rotas) state.rotas = backup.rotas;
+            if (backup.historicoCalculos) state.historicoCalculos = backup.historicoCalculos;
+            localStorage.setItem('assef_backup', JSON.stringify(backup));
+            mostrarNotificacao('Backup importado com sucesso!', 'success');
+            render();
+        } catch (error) {
+            mostrarNotificacao('Arquivo de backup inválido', 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// ========== FUNÇÕES DE LOGIN ==========
+function fazerLogin() {
+    const usuario = document.getElementById('login-usuario')?.value;
+    const senha = document.getElementById('login-senha')?.value;
+    
+    if (!usuario || !senha) {
+        mostrarNotificacao('Preencha todos os campos', 'error');
+        return;
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+
+    const user = state.usuarios.find(u => u.usuario === usuario && u.senha === senha);
+    
+    if (user) {
+        state.usuarioLogado = user;
+        mostrarNotificacao(`Bem-vindo, ${user.nome || user.usuario}!`, 'success');
+        render();
+    } else {
+        mostrarNotificacao('Usuário ou senha inválidos', 'error');
     }
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+function logout() {
+    state.usuarioLogado = null;
+    mostrarNotificacao('Logout realizado com sucesso', 'info');
+    render();
 }
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+// ========== FUNÇÕES DE VEÍCULOS ==========
+function calcularCustoVeiculo(veiculo) {
+    const valorDiaria = parseFloat(veiculo.valorDiaria) || 0;
+    const qtdDiarias = parseInt(veiculo.qtdDiarias) || 0;
+    const diasRodados = parseInt(veiculo.diasRodados) || 1;
+    
+    return valorDiaria * qtdDiarias * diasRodados;
 }
 
-/* Loading Spinner */
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border-color);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+function criarVeiculoPadrao(tipo = 'onibus') {
+    const padrao = state.veiculosPadrao.find(v => v.id === tipo) || state.veiculosPadrao[0];
+    return {
+        id: 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        tipo: padrao.id,
+        nome: padrao.nome,
+        valorDiaria: padrao.valorDiaria,
+        qtdDiarias: 1,
+        diasRodados: 1,
+        personalizado: false
+    };
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
+// ========== FUNÇÕES DE CÁLCULO ==========
+function calcularBrutoRota(rota) {
+    if (!rota.veiculos || !rota.veiculos.length) return 0;
+    
+    return rota.veiculos.reduce((total, v) => {
+        return total + calcularCustoVeiculo(v);
+    }, 0);
 }
 
-/* Scrollbar Personalizada */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+function calcularTotalPassagens(rota) {
+    return parseFloat(rota.passagens) || 0;
 }
 
-::-webkit-scrollbar-track {
-    background: var(--body-bg);
+function calcularTotalAlunos(rota) {
+    if (!rota.alunos || !rota.alunos.length) return 0;
+    return rota.alunos.length;
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
-    border-radius: 5px;
+function calcularAlunosIntegrais(rota) {
+    if (!rota.alunos || !rota.alunos.length) return 0;
+    return rota.alunos.filter(a => a.integral).length;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
+function calcularDistribuicao30_70(rotas, auxilioTotal) {
+    const diasMaximo = Math.max(...rotas.map(r => Math.max(...(r.diasRodadosArray || [1]))));
+    if (diasMaximo === 0) return rotas.map(() => 0);
+    
+    const valorPorDia = auxilioTotal / diasMaximo;
+    const auxilioPorRota = new Array(rotas.length).fill(0);
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-        position: fixed;
-        z-index: 1001;
+    for (let dia = 1; dia <= diasMaximo; dia++) {
+        const rotasNoDia = rotas.filter(r => (r.diasRodadosArray || []).includes(dia));
+        
+        if (rotasNoDia.length === rotas.length) {
+            const brutos = rotasNoDia.map(r => calcularBrutoRota(r));
+            const totalBruto = brutos.reduce((a, b) => a + b, 0);
+            rotasNoDia.forEach((r, idx) => {
+                const proporcao = totalBruto ? brutos[idx] / totalBruto : 1 / rotas.length;
+                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * proporcao;
+            });
+        } 
+        else if (rotasNoDia.length === 1) {
+            const r = rotasNoDia[0];
+            auxilioPorRota[rotas.indexOf(r)] += valorPorDia * 0.7;
+            rotas.filter(r2 => !(r2.diasRodadosArray || []).includes(dia)).forEach(r2 => {
+                auxilioPorRota[rotas.indexOf(r2)] += valorPorDia * 0.3;
+            });
+        }
+        else if (rotasNoDia.length > 1) {
+            const brutos = rotasNoDia.map(r => calcularBrutoRota(r));
+            const totalBruto = brutos.reduce((a, b) => a + b, 0);
+            rotasNoDia.forEach((r, idx) => {
+                const proporcao = totalBruto ? brutos[idx] / totalBruto : 1 / rotasNoDia.length;
+                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * proporcao;
+            });
+        }
     }
     
-    .sidebar.open {
-        transform: translateX(0);
+    return auxilioPorRota;
+}
+
+function calcularRateioAlunos(rota, valorDisponivel) {
+    if (!rota.alunos || !rota.alunos.length) return [];
+    
+    const integrais = rota.alunos.filter(a => a.integral).length;
+    let somaPesos = integrais;
+    
+    rota.alunos.forEach(a => {
+        if (!a.integral) {
+            somaPesos += (1 - (a.desconto || 0) / 100);
+        }
+    });
+    
+    const valorBase = valorDisponivel / somaPesos;
+    
+    return rota.alunos.map(a => {
+        if (a.integral) {
+            return { ...a, valorPagar: valorBase };
+        } else {
+            return { ...a, valorPagar: valorBase * (1 - (a.desconto || 0) / 100) };
+        }
+    });
+}
+
+function calcularAuxilio(auxilioDinheiro, auxilioCombustivel) {
+    const auxilioTotal = auxilioDinheiro + auxilioCombustivel;
+    const rotas = state.rotas;
+    
+    if (!rotas.length) {
+        mostrarNotificacao('Nenhuma rota cadastrada', 'error');
+        return null;
+    }
+
+    const resultados = [];
+    const brutos = rotas.map(r => calcularBrutoRota(r));
+    const totaisPassagens = rotas.map(r => calcularTotalPassagens(r));
+    const totaisAlunos = rotas.map(r => calcularTotalAlunos(r));
+    const auxilios = calcularDistribuicao30_70(rotas, auxilioTotal);
+    const totalBruto = brutos.reduce((a, b) => a + b, 0);
+
+    for (let i = 0; i < rotas.length; i++) {
+        const rota = rotas[i];
+        const bruto = brutos[i];
+        const auxilio = auxilios[i];
+        const passagens = totaisPassagens[i];
+        const aposAuxilio = bruto - auxilio;
+        const aposPassagens = aposAuxilio - passagens;
+        
+        const alunosComValores = calcularRateioAlunos(rota, aposPassagens);
+        
+        resultados.push({
+            rota: rota.nome,
+            veiculos: rota.veiculos,
+            alunos: alunosComValores,
+            bruto,
+            percBruto: totalBruto ? ((bruto / totalBruto) * 100).toFixed(2) : '0',
+            auxilio,
+            percAuxilio: auxilioTotal ? ((auxilio / auxilioTotal) * 100).toFixed(2) : '0',
+            aposAuxilio,
+            passagens,
+            aposPassagens,
+            totalAlunos: totaisAlunos[i],
+            valorPorAluno: alunosComValores.length ? alunosComValores[0].valorPagar : 0
+        });
+    }
+
+    const totais = {
+        bruto: brutos.reduce((a, b) => a + b, 0),
+        auxilio: auxilios.reduce((a, b) => a + b, 0),
+        passagens: totaisPassagens.reduce((a, b) => a + b, 0),
+        alunos: totaisAlunos.reduce((a, b) => a + b, 0)
+    };
+
+    state.calculoAtual = {
+        data: new Date().toISOString(),
+        auxilioDinheiro,
+        auxilioCombustivel,
+        auxilioTotal,
+        resultados,
+        totais,
+        usuario: state.usuarioLogado?.usuario
+    };
+
+    return state.calculoAtual;
+}
+
+// ==============================================
+// PARTE 2/2 - FUNÇÕES DE RENDERIZAÇÃO E EXPORTAÇÃO
+// ==============================================
+
+// ========== FUNÇÕES DE EXPORTAÇÃO ==========
+function exportarParaExcel() {
+    if (!state.calculoAtual) {
+        mostrarNotificacao('Nenhum cálculo para exportar', 'warning');
+        return;
+    }
+
+    try {
+        const wb = XLSX.utils.book_new();
+        
+        // Planilha de Resumo
+        const dadosResumo = [
+            ['RELATÓRIO DE CÁLCULO DE AUXÍLIO - ASSEUF'],
+            [`Data: ${new Date(state.calculoAtual.data).toLocaleString()}`],
+            [`Usuário: ${state.calculoAtual.usuario}`],
+            [],
+            ['AUXÍLIOS'],
+            ['Tipo', 'Valor (R$)'],
+            ['Dinheiro', state.calculoAtual.auxilioDinheiro],
+            ['Combustível', state.calculoAtual.auxilioCombustivel],
+            ['Total', state.calculoAtual.auxilioTotal],
+            [],
+            ['RESUMO POR ROTA'],
+            ['Rota', 'Bruto (R$)', '% Bruto', 'Auxílio (R$)', '% Auxílio', 'Após Auxílio', 'Passagens', 'Após Passagens', 'Total Alunos']
+        ];
+
+        state.calculoAtual.resultados.forEach(r => {
+            dadosResumo.push([
+                r.rota,
+                r.bruto.toFixed(2),
+                r.percBruto + '%',
+                r.auxilio.toFixed(2),
+                r.percAuxilio + '%',
+                r.aposAuxilio.toFixed(2),
+                r.passagens.toFixed(2),
+                r.aposPassagens.toFixed(2),
+                r.totalAlunos
+            ]);
+        });
+
+        dadosResumo.push([]);
+        dadosResumo.push(['TOTAIS GERAIS']);
+        dadosResumo.push([
+            'Bruto Total',
+            'Auxílio Total',
+            'Passagens Total',
+            'Total Alunos'
+        ]);
+        dadosResumo.push([
+            state.calculoAtual.totais.bruto.toFixed(2),
+            state.calculoAtual.totais.auxilio.toFixed(2),
+            state.calculoAtual.totais.passagens.toFixed(2),
+            state.calculoAtual.totais.alunos
+        ]);
+
+        const wsResumo = XLSX.utils.aoa_to_sheet(dadosResumo);
+        XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+        // Planilha de Veículos por Rota
+        const dadosVeiculos = [['VEÍCULOS POR ROTA']];
+        state.calculoAtual.resultados.forEach(r => {
+            dadosVeiculos.push([]);
+            dadosVeiculos.push([`ROTA: ${r.rota}`]);
+            dadosVeiculos.push(['Veículo', 'Diária (R$)', 'Qtd Diárias', 'Dias Rodados', 'Custo Total (R$)']);
+            
+            r.veiculos.forEach(v => {
+                const custo = calcularCustoVeiculo(v);
+                dadosVeiculos.push([
+                    v.nome || v.tipo,
+                    v.valorDiaria,
+                    v.qtdDiarias,
+                    v.diasRodados || 1,
+                    custo.toFixed(2)
+                ]);
+            });
+            
+            dadosVeiculos.push(['TOTAL ROTA', '', '', '', r.bruto.toFixed(2)]);
+        });
+
+        const wsVeiculos = XLSX.utils.aoa_to_sheet(dadosVeiculos);
+        XLSX.utils.book_append_sheet(wb, wsVeiculos, 'Veículos');
+
+        // Planilha de Alunos
+        const dadosAlunos = [['ALUNOS POR ROTA']];
+        state.calculoAtual.resultados.forEach(r => {
+            dadosAlunos.push([]);
+            dadosAlunos.push([`ROTA: ${r.rota}`]);
+            dadosAlunos.push(['Aluno', 'Tipo', 'Desconto (%)', 'Valor a Pagar (R$)']);
+            
+            r.alunos.forEach(a => {
+                dadosAlunos.push([
+                    a.nome,
+                    a.integral ? 'Integral' : 'Com Desconto',
+                    a.integral ? '0' : (a.desconto || 0).toString(),
+                    a.valorPagar.toFixed(2)
+                ]);
+            });
+            
+            const totalAlunos = r.alunos.reduce((acc, a) => acc + a.valorPagar, 0);
+            dadosAlunos.push(['TOTAL A PAGAR', '', '', totalAlunos.toFixed(2)]);
+        });
+
+        const wsAlunos = XLSX.utils.aoa_to_sheet(dadosAlunos);
+        XLSX.utils.book_append_sheet(wb, wsAlunos, 'Alunos');
+
+        // Salvar arquivo
+        XLSX.writeFile(wb, `assef_calculo_${new Date().toISOString().slice(0,10)}.xlsx`);
+        mostrarNotificacao('Planilha Excel exportada com sucesso!', 'success');
+    } catch (error) {
+        console.error(error);
+        mostrarNotificacao('Erro ao exportar Excel', 'error');
+    }
+}
+
+function exportarParaPDF() {
+    if (!state.calculoAtual) {
+        mostrarNotificacao('Nenhum cálculo para exportar', 'warning');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        
+        // Título
+        doc.setFontSize(20);
+        doc.setTextColor(67, 97, 238);
+        doc.text('ASSEUF - Relatório de Cálculo', 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Data: ${new Date(state.calculoAtual.data).toLocaleString()}`, 14, 30);
+        doc.text(`Usuário: ${state.calculoAtual.usuario}`, 14, 35);
+        
+        // Auxílios
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text('AUXÍLIOS', 14, 45);
+        
+        doc.autoTable({
+            startY: 48,
+            head: [['Tipo', 'Valor (R$)']],
+            body: [
+                ['Dinheiro', state.calculoAtual.auxilioDinheiro.toFixed(2)],
+                ['Combustível', state.calculoAtual.auxilioCombustivel.toFixed(2)],
+                ['Total', state.calculoAtual.auxilioTotal.toFixed(2)]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [67, 97, 238] }
+        });
+
+        // Resumo por Rota
+        doc.text('RESUMO POR ROTA', 14, doc.lastAutoTable.finalY + 10);
+        
+        const dadosRotas = state.calculoAtual.resultados.map(r => [
+            r.rota,
+            r.bruto.toFixed(2),
+            r.percBruto + '%',
+            r.auxilio.toFixed(2),
+            r.percAuxilio + '%',
+            r.aposPassagens.toFixed(2)
+        ]);
+
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 13,
+            head: [['Rota', 'Bruto', '%', 'Auxílio', '%', 'Líquido']],
+            body: dadosRotas,
+            theme: 'striped',
+            headStyles: { fillColor: [67, 97, 238] }
+        });
+
+        // Veículos
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text('Detalhamento de Veículos', 14, 20);
+        
+        let yPos = 30;
+        state.calculoAtual.resultados.forEach((r, idx) => {
+            doc.setFontSize(12);
+            doc.setTextColor(67, 97, 238);
+            doc.text(`Rota: ${r.rota}`, 14, yPos);
+            
+            const dadosVeiculos = r.veiculos.map(v => [
+                v.nome || v.tipo,
+                `R$ ${v.valorDiaria.toFixed(2)}`,
+                v.qtdDiarias,
+                v.diasRodados || 1,
+                `R$ ${calcularCustoVeiculo(v).toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: yPos + 2,
+                head: [['Veículo', 'Diária', 'Qtd', 'Dias', 'Total']],
+                body: dadosVeiculos,
+                theme: 'grid',
+                headStyles: { fillColor: [100, 100, 100] }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 10;
+            
+            if (idx < state.calculoAtual.resultados.length - 1 && yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
+        });
+
+        // Alunos
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text('Detalhamento de Alunos', 14, 20);
+        
+        yPos = 30;
+        state.calculoAtual.resultados.forEach((r, idx) => {
+            doc.setFontSize(12);
+            doc.setTextColor(67, 97, 238);
+            doc.text(`Rota: ${r.rota}`, 14, yPos);
+            
+            const dadosAlunos = r.alunos.map(a => [
+                a.nome,
+                a.integral ? 'Integral' : 'C/ Desconto',
+                a.integral ? '-' : (a.desconto + '%'),
+                `R$ ${a.valorPagar.toFixed(2)}`
+            ]);
+
+            doc.autoTable({
+                startY: yPos + 2,
+                head: [['Aluno', 'Tipo', 'Desconto', 'Valor']],
+                body: dadosAlunos,
+                theme: 'grid',
+                headStyles: { fillColor: [100, 100, 100] }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 10;
+            
+            if (idx < state.calculoAtual.resultados.length - 1 && yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
+        });
+
+        // Salvar PDF
+        doc.save(`assef_relatorio_${new Date().toISOString().slice(0,10)}.pdf`);
+        mostrarNotificacao('PDF exportado com sucesso!', 'success');
+    } catch (error) {
+        console.error(error);
+        mostrarNotificacao('Erro ao exportar PDF', 'error');
+    }
+}
+
+// ========== FUNÇÕES DE RENDERIZAÇÃO ==========
+function render() {
+    const root = document.getElementById('root');
+    if (!root) return;
+
+    if (!state.usuarioLogado) {
+        root.innerHTML = renderLogin();
+        return;
+    }
+
+    root.innerHTML = `
+        <div class="app-layout">
+            ${renderSidebar()}
+            <main class="main-content">
+                ${renderConteudo()}
+            </main>
+        </div>
+    `;
+
+    // Atualizar item ativo no menu
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.dataset.page === state.paginaAtual) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function renderLogin() {
+    return `
+        <div class="main-content" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);">
+            <div class="card" style="max-width: 420px; width: 100%; animation: slideIn 0.5s ease;">
+                <div class="text-center mb-4">
+                    <div class="logo" style="font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ASSEUF</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem; letter-spacing: 2px;">ENTERPRISE PRO</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-user"></i>
+                        Usuário
+                    </label>
+                    <input type="text" id="login-usuario" class="form-control" placeholder="Digite seu usuário">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-lock"></i>
+                        Senha
+                    </label>
+                    <input type="password" id="login-senha" class="form-control" placeholder="Digite sua senha">
+                </div>
+                
+                <button onclick="fazerLogin()" class="btn" style="width: 100%; padding: 1rem;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    ENTRAR NO SISTEMA
+                </button>
+                
+                <div class="text-center mt-4" style="color: var(--text-muted); font-size: 0.8rem;">
+                    <i class="fas fa-shield-alt"></i> Sistema seguro • Todos os direitos reservados
+                </div>
+                
+                <div class="grid" style="margin-top: 2rem; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                    <div class="badge badge-primary">admin / 0000</div>
+                    <div class="badge badge-success">taylor / 1296</div>
+                    <div class="badge badge-warning">operador / 4321</div>
+                    <div class="badge badge-info">visitante / 1234</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderSidebar() {
+    const user = state.usuarioLogado;
+    
+    return `
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">ASSEUF</div>
+                <div class="subtitle">ENTERPRISE PRO</div>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-name">
+                    <i class="fas fa-user-circle"></i> ${user.nome || user.usuario}
+                </div>
+                <div class="user-role">
+                    Perfil: <span class="role-badge">${user.perfil.toUpperCase()}</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item" data-page="home" onclick="mudarPagina('home')">
+                    <i class="fas fa-home"></i>
+                    Dashboard
+                </button>
+                
+                <button class="nav-item" data-page="rotas" onclick="mudarPagina('rotas')">
+                    <i class="fas fa-route"></i>
+                    Gerenciar Rotas
+                </button>
+                
+                <button class="nav-item" data-page="novaRota" onclick="mudarPagina('novaRota')">
+                    <i class="fas fa-plus-circle"></i>
+                    Nova Rota
+                </button>
+                
+                <button class="nav-item" data-page="calculo" onclick="mudarPagina('calculo')">
+                    <i class="fas fa-calculator"></i>
+                    Calcular Auxílio
+                </button>
+                
+                <button class="nav-item" data-page="historico" onclick="mudarPagina('historico')">
+                    <i class="fas fa-history"></i>
+                    Histórico
+                </button>
+                
+                <button class="nav-item" data-page="relatorio" onclick="mudarPagina('relatorio')">
+                    <i class="fas fa-file-pdf"></i>
+                    Relatórios
+                </button>
+                
+                <button class="nav-item" data-page="backup" onclick="mudarPagina('backup')">
+                    <i class="fas fa-database"></i>
+                    Backup
+                </button>
+                
+                <button class="nav-item" onclick="alternarTema()">
+                    <i class="fas ${state.tema === 'light' ? 'fa-moon' : 'fa-sun'}"></i>
+                    ${state.tema === 'light' ? 'Tema Escuro' : 'Tema Claro'}
+                </button>
+                
+                <button class="nav-item logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sair
+                </button>
+            </nav>
+        </aside>
+    `;
+}
+
+function renderConteudo() {
+    switch (state.paginaAtual) {
+        case 'home': return renderHome();
+        case 'rotas': return renderRotas();
+        case 'novaRota': return renderNovaRota();
+        case 'editarRota': return renderEditarRota();
+        case 'calculo': return renderCalculo();
+        case 'historico': return renderHistorico();
+        case 'relatorio': return renderRelatorio();
+        case 'backup': return renderBackup();
+        default: return renderHome();
+    }
+}
+
+function renderHome() {
+    const totalRotas = state.rotas.length;
+    const totalCalculos = state.historicoCalculos.length;
+    const totalVeiculos = state.rotas.reduce((acc, r) => acc + (r.veiculos?.length || 0), 0);
+    const totalAlunos = state.rotas.reduce((acc, r) => acc + (r.alunos?.length || 0), 0);
+    
+    const ultimoCalculo = state.historicoCalculos[state.historicoCalculos.length - 1];
+    
+    return `
+        <div class="card" style="animation: fadeInUp 0.4s ease;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </h2>
+                <span class="badge badge-success">Online</span>
+            </div>
+            
+            <div class="grid">
+                <div class="card hover-lift stat-card">
+                    <i class="fas fa-route" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                    <div class="stat-value">${totalRotas}</div>
+                    <div class="stat-label">Rotas Cadastradas</div>
+                </div>
+                
+                <div class="card hover-lift stat-card">
+                    <i class="fas fa-truck" style="font-size: 2.5rem; color: var(--success); margin-bottom: 1rem;"></i>
+                    <div class="stat-value">${totalVeiculos}</div>
+                    <div class="stat-label">Veículos</div>
+                </div>
+                
+                <div class="card hover-lift stat-card">
+                    <i class="fas fa-users" style="font-size: 2.5rem; color: var(--warning); margin-bottom: 1rem;"></i>
+                    <div class="stat-value">${totalAlunos}</div>
+                    <div class="stat-label">Alunos</div>
+                </div>
+                
+                <div class="card hover-lift stat-card">
+                    <i class="fas fa-calculator" style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+                    <div class="stat-value">${totalCalculos}</div>
+                    <div class="stat-label">Cálculos Realizados</div>
+                </div>
+            </div>
+            
+            ${ultimoCalculo ? `
+            <div class="card">
+                <h3 class="card-title">
+                    <i class="fas fa-clock"></i>
+                    Último Cálculo
+                </h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Auxílio Total</th>
+                                <th>Rotas</th>
+                                <th>Total Alunos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${new Date(ultimoCalculo.data).toLocaleString()}</td>
+                                <td>R$ ${ultimoCalculo.auxilioTotal.toFixed(2)}</td>
+                                <td>${ultimoCalculo.resultados.length}</td>
+                                <td>${ultimoCalculo.totais.alunos}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Sistema pronto para uso!</strong> 
+                    Você pode gerenciar rotas, veículos e alunos, calcular auxílios e exportar relatórios.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderRotas() {
+    if (!state.rotas.length) {
+        return `
+            <div class="card text-center" style="padding: 3rem;">
+                <i class="fas fa-route" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Nenhuma rota cadastrada</h3>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">Comece criando sua primeira rota</p>
+                <button class="btn" onclick="mudarPagina('novaRota')">
+                    <i class="fas fa-plus"></i>
+                    Criar Nova Rota
+                </button>
+            </div>
+        `;
+    }
+
+    let html = `
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-route"></i>
+                Rotas Cadastradas
+            </h2>
+            <button class="btn btn-success" onclick="mudarPagina('novaRota')">
+                <i class="fas fa-plus"></i>
+                Nova Rota
+            </button>
+        </div>
+    `;
+
+    state.rotas.forEach(rota => {
+        const totalVeiculos = rota.veiculos?.length || 0;
+        const totalAlunos = rota.alunos?.length || 0;
+        const bruto = calcularBrutoRota(rota);
+        
+        html += `
+            <div class="card hover-lift">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">${rota.nome}</h3>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <span class="badge badge-primary">
+                                <i class="fas fa-truck"></i> ${totalVeiculos} veículos
+                            </span>
+                            <span class="badge badge-success">
+                                <i class="fas fa-users"></i> ${totalAlunos} alunos
+                            </span>
+                            <span class="badge badge-warning">
+                                <i class="fas fa-calendar"></i> ${rota.diasRodadosArray?.length || 0} dias
+                            </span>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline" onclick="editarRota('${rota.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="excluirRota('${rota.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
+                    <div class="stat-card">
+                        <div class="stat-value">R$ ${bruto.toFixed(2)}</div>
+                        <div class="stat-label">Custo Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">R$ ${rota.passagens?.toFixed(2) || '0.00'}</div>
+                        <div class="stat-label">Passagens</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalVeiculos}</div>
+                        <div class="stat-label">Veículos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalAlunos}</div>
+                        <div class="stat-label">Alunos</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <strong>Dias rodados:</strong> ${rota.diasRodadosArray?.join(', ') || 'N/A'}
+                </div>
+            </div>
+        `;
+    });
+
+    return html;
+}
+
+function renderNovaRota() {
+    return renderFormularioRota();
+}
+
+function renderEditarRota() {
+    const rota = state.rotas.find(r => r.id === state.rotaEditando);
+    if (!rota) {
+        mostrarNotificacao('Rota não encontrada', 'error');
+        mudarPagina('rotas');
+        return '';
+    }
+    return renderFormularioRota(rota);
+}
+
+function renderFormularioRota(rota = null) {
+    const veiculosPadraoOptions = state.veiculosPadrao.map(v => 
+        `<option value="${v.id}">${v.nome} - R$ ${v.valorDiaria.toFixed(2)}</option>`
+    ).join('');
+
+    let veiculosHtml = '';
+    if (rota && rota.veiculos) {
+        rota.veiculos.forEach((v, index) => {
+            veiculosHtml += `
+                <div class="veiculo-item" data-index="${index}">
+                    <div class="veiculo-header">
+                        <span class="veiculo-tipo">${v.nome || v.tipo}</span>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removerVeiculo(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="veiculo-custos">
+                        <div class="veiculo-campo">
+                            <label>Valor da Diária</label>
+                            <input type="number" class="form-control veiculo-diaria" value="${v.valorDiaria}" step="0.01" min="0" required>
+                        </div>
+                        <div class="veiculo-campo">
+                            <label>Quantidade de Diárias</label>
+                            <input type="number" class="form-control veiculo-qtd" value="${v.qtdDiarias}" min="1" required>
+                        </div>
+                        <div class="veiculo-campo">
+                            <label>Dias Rodados</label>
+                            <input type="number" class="form-control veiculo-dias" value="${v.diasRodados || 1}" min="1" required>
+                        </div>
+                        <div class="veiculo-campo">
+                            <label>Custo Total</label>
+                            <div class="valor">R$ ${calcularCustoVeiculo(v).toFixed(2)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    return `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas ${rota ? 'fa-edit' : 'fa-plus-circle'}"></i>
+                    ${rota ? 'Editar Rota' : 'Nova Rota'}
+                </h2>
+            </div>
+            
+            <form onsubmit="salvarRota(event)" id="form-rota">
+                <input type="hidden" id="rota-id" value="${rota?.id || ''}">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-signature"></i>
+                            Nome da Rota
+                        </label>
+                        <input type="text" class="form-control" id="rota-nome" value="${rota?.nome || ''}" placeholder="Ex: Curvelo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-calendar-alt"></i>
+                            Dias Rodados (separados por vírgula)
+                        </label>
+                        <input type="text" class="form-control" id="rota-dias" value="${rota?.diasRodadosArray?.join(', ') || ''}" placeholder="Ex: 1,2,3,4,5" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-ticket-alt"></i>
+                            Valor das Passagens (R$)
+                        </label>
+                        <input type="number" class="form-control" id="rota-passagens" value="${rota?.passagens || ''}" step="0.01" min="0" required>
+                    </div>
+                </div>
+                
+                <div class="card-header" style="margin-top: 2rem;">
+                    <h3 class="card-title">
+                        <i class="fas fa-truck"></i>
+                        Veículos da Rota
+                    </h3>
+                    <div class="btn-group">
+                        <select id="tipo-veiculo" class="form-control" style="width: auto;">
+                            ${veiculosPadraoOptions}
+                        </select>
+                        <button type="button" class="btn btn-success" onclick="adicionarVeiculoPadrao()">
+                            <i class="fas fa-plus"></i>
+                            Adicionar Veículo
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="veiculos-container">
+                    ${veiculosHtml}
+                </div>
+                
+                <div class="card-header" style="margin-top: 2rem;">
+                    <h3 class="card-title">
+                        <i class="fas fa-users"></i>
+                        Alunos da Rota
+                    </h3>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" onclick="adicionarAluno()">
+                            <i class="fas fa-plus"></i>
+                            Adicionar Aluno
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="adicionarAlunosEmMassa()">
+                            <i class="fas fa-layer-group"></i>
+                            Adicionar em Massa
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="alunos-container">
+                    ${renderAlunos(rota?.alunos)}
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="btn-group" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="mudarPagina('rotas')">
+                        <i class="fas fa-times"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i>
+                        ${rota ? 'Atualizar Rota' : 'Salvar Rota'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+function renderAlunos(alunos = []) {
+    if (!alunos || !alunos.length) return '';
+
+    return alunos.map((a, index) => `
+        <div class="veiculo-item" data-aluno-index="${index}">
+            <div class="veiculo-header">
+                <span class="veiculo-tipo">${a.nome}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removerAluno(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="veiculo-custos">
+                <div class="veiculo-campo">
+                    <label>Nome do Aluno</label>
+                    <input type="text" class="form-control aluno-nome" value="${a.nome}" required>
+                </div>
+                <div class="veiculo-campo">
+                    <label>Tipo</label>
+                    <select class="form-control aluno-tipo">
+                        <option value="integral" ${a.integral ? 'selected' : ''}>Integral</option>
+                        <option value="desconto" ${!a.integral ? 'selected' : ''}>Com Desconto</option>
+                    </select>
+                </div>
+                <div class="veiculo-campo">
+                    <label>Desconto (%)</label>
+                    <input type="number" class="form-control aluno-desconto" value="${a.desconto || 0}" step="0.1" min="0" max="100">
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ========== FUNÇÕES DE MANIPULAÇÃO DE ROTAS ==========
+function adicionarVeiculoPadrao() {
+    const select = document.getElementById('tipo-veiculo');
+    const tipo = select.value;
+    const veiculo = criarVeiculoPadrao(tipo);
+    
+    const container = document.getElementById('veiculos-container');
+    const index = container.children.length;
+    
+    const div = document.createElement('div');
+    div.className = 'veiculo-item';
+    div.setAttribute('data-index', index);
+    div.innerHTML = `
+        <div class="veiculo-header">
+            <span class="veiculo-tipo">${veiculo.nome}</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removerVeiculo(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="veiculo-custos">
+            <div class="veiculo-campo">
+                <label>Valor da Diária</label>
+                <input type="number" class="form-control veiculo-diaria" value="${veiculo.valorDiaria}" step="0.01" min="0" required>
+            </div>
+            <div class="veiculo-campo">
+                <label>Quantidade de Diárias</label>
+                <input type="number" class="form-control veiculo-qtd" value="${veiculo.qtdDiarias}" min="1" required>
+            </div>
+            <div class="veiculo-campo">
+                <label>Dias Rodados</label>
+                <input type="number" class="form-control veiculo-dias" value="${veiculo.diasRodados}" min="1" required>
+            </div>
+            <div class="veiculo-campo">
+                <label>Custo Total</label>
+                <div class="valor">R$ ${calcularCustoVeiculo(veiculo).toFixed(2)}</div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(div);
+    
+    // Adicionar evento para atualizar custo total
+    const inputs = div.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            atualizarCustoVeiculo(div);
+        });
+    });
+}
+
+function removerVeiculo(btn) {
+    btn.closest('.veiculo-item').remove();
+}
+
+function atualizarCustoVeiculo(div) {
+    const diaria = parseFloat(div.querySelector('.veiculo-diaria').value) || 0;
+    const qtd = parseInt(div.querySelector('.veiculo-qtd').value) || 0;
+    const dias = parseInt(div.querySelector('.veiculo-dias').value) || 1;
+    const custo = diaria * qtd * dias;
+    
+    const custoDiv = div.querySelector('.veiculo-campo:last-child .valor');
+    if (custoDiv) {
+        custoDiv.textContent = `R$ ${custo.toFixed(2)}`;
+    }
+}
+
+function adicionarAluno() {
+    const container = document.getElementById('alunos-container');
+    const index = container.children.length;
+    
+    const div = document.createElement('div');
+    div.className = 'veiculo-item';
+    div.setAttribute('data-aluno-index', index);
+    div.innerHTML = `
+        <div class="veiculo-header">
+            <span class="veiculo-tipo">Novo Aluno</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removerAluno(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="veiculo-custos">
+            <div class="veiculo-campo">
+                <label>Nome do Aluno</label>
+                <input type="text" class="form-control aluno-nome" placeholder="Nome do aluno" required>
+            </div>
+            <div class="veiculo-campo">
+                <label>Tipo</label>
+                <select class="form-control aluno-tipo">
+                    <option value="integral">Integral</option>
+                    <option value="desconto">Com Desconto</option>
+                </select>
+            </div>
+            <div class="veiculo-campo">
+                <label>Desconto (%)</label>
+                <input type="number" class="form-control aluno-desconto" value="0" step="0.1" min="0" max="100">
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(div);
+}
+
+function adicionarAlunosEmMassa() {
+    const quantidade = prompt('Quantos alunos deseja adicionar?', '10');
+    const qtd = parseInt(quantidade);
+    
+    if (isNaN(qtd) || qtd <= 0) return;
+    
+    for (let i = 0; i < qtd; i++) {
+        adicionarAluno();
+    }
+}
+
+function removerAluno(btn) {
+    btn.closest('.veiculo-item').remove();
+}
+
+function salvarRota(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('rota-id').value;
+    const nome = document.getElementById('rota-nome').value;
+    const diasStr = document.getElementById('rota-dias').value;
+    const passagens = parseFloat(document.getElementById('rota-passagens').value) || 0;
+    
+    const diasRodadosArray = diasStr.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+    
+    // Coletar veículos
+    const veiculos = [];
+    document.querySelectorAll('#veiculos-container .veiculo-item').forEach((item, index) => {
+        const diaria = parseFloat(item.querySelector('.veiculo-diaria').value) || 0;
+        const qtd = parseInt(item.querySelector('.veiculo-qtd').value) || 0;
+        const dias = parseInt(item.querySelector('.veiculo-dias').value) || 1;
+        const tipo = item.querySelector('.veiculo-tipo')?.textContent || 'Veículo';
+        
+        if (diaria > 0 && qtd > 0) {
+            veiculos.push({
+                id: 'v_' + Date.now() + '_' + index,
+                nome: tipo,
+                valorDiaria: diaria,
+                qtdDiarias: qtd,
+                diasRodados: dias
+            });
+        }
+    });
+    
+    // Coletar alunos
+    const alunos = [];
+    document.querySelectorAll('#alunos-container .veiculo-item').forEach((item, index) => {
+        const nome = item.querySelector('.aluno-nome')?.value;
+        const tipo = item.querySelector('.aluno-tipo')?.value;
+        const desconto = parseFloat(item.querySelector('.aluno-desconto')?.value) || 0;
+        
+        if (nome) {
+            alunos.push({
+                id: 'a_' + Date.now() + '_' + index,
+                nome: nome,
+                integral: tipo === 'integral',
+                desconto: tipo === 'integral' ? 0 : desconto
+            });
+        }
+    });
+    
+    if (!veiculos.length) {
+        mostrarNotificacao('Adicione pelo menos um veículo', 'error');
+        return;
     }
     
-    .main-content {
-        margin-left: 0;
-        padding: 1rem;
+    if (!alunos.length) {
+        mostrarNotificacao('Adicione pelo menos um aluno', 'error');
+        return;
     }
     
-    .grid {
-        grid-template-columns: 1fr;
+    const rota = {
+        id: id || 'r_' + Date.now(),
+        nome,
+        diasRodadosArray,
+        passagens,
+        veiculos,
+        alunos,
+        dataCriacao: new Date().toISOString()
+    };
+    
+    if (id) {
+        const index = state.rotas.findIndex(r => r.id === id);
+        if (index !== -1) {
+            state.rotas[index] = rota;
+            mostrarNotificacao('Rota atualizada com sucesso!', 'success');
+        }
+    } else {
+        state.rotas.push(rota);
+        mostrarNotificacao('Rota criada com sucesso!', 'success');
     }
     
-    .form-row {
-        grid-template-columns: 1fr;
+    salvarBackup();
+    mudarPagina('rotas');
+}
+
+function editarRota(id) {
+    state.rotaEditando = id;
+    mudarPagina('editarRota');
+}
+
+function excluirRota(id) {
+    if (confirm('Tem certeza que deseja excluir esta rota?')) {
+        state.rotas = state.rotas.filter(r => r.id !== id);
+        salvarBackup();
+        mostrarNotificacao('Rota excluída com sucesso!', 'success');
+        render();
+    }
+}
+
+// ========== FUNÇÕES DE CÁLCULO ==========
+function renderCalculo() {
+    return `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-calculator"></i>
+                    Calcular Auxílio
+                </h2>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-money-bill"></i>
+                        Auxílio em Dinheiro (R$)
+                    </label>
+                    <input type="number" class="form-control" id="auxilio-dinheiro" value="0" step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-gas-pump"></i>
+                        Auxílio em Combustível (R$)
+                    </label>
+                    <input type="number" class="form-control" id="auxilio-combustivel" value="0" step="0.01" min="0">
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="executarCalculo()">
+                    <i class="fas fa-play"></i>
+                    Calcular
+                </button>
+                <button class="btn btn-outline" onclick="limparCalculo()">
+                    <i class="fas fa-eraser"></i>
+                    Limpar
+                </button>
+            </div>
+        </div>
+        
+        <div id="resultado-calculo"></div>
+    `;
+}
+
+function executarCalculo() {
+    const dinheiro = parseFloat(document.getElementById('auxilio-dinheiro').value) || 0;
+    const combustivel = parseFloat(document.getElementById('auxilio-combustivel').value) || 0;
+    
+    if (dinheiro + combustivel === 0) {
+        mostrarNotificacao('Informe pelo menos um valor de auxílio', 'warning');
+        return;
     }
     
-    .veiculo-custos {
-        grid-template-columns: 1fr;
+    const resultado = calcularAuxilio(dinheiro, combustivel);
+    if (!resultado) return;
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Resultado do Cálculo
+                </h3>
+                <div class="btn-group">
+                    <button class="btn btn-success btn-sm" onclick="exportarParaExcel()">
+                        <i class="fas fa-file-excel"></i>
+                        Excel
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="exportarParaPDF()">
+                        <i class="fas fa-file-pdf"></i>
+                        PDF
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="salvarNoHistorico()">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rota</th>
+                            <th>Bruto (R$)</th>
+                            <th>% Bruto</th>
+                            <th>Auxílio (R$)</th>
+                            <th>% Auxílio</th>
+                            <th>Após Auxílio</th>
+                            <th>Passagens</th>
+                            <th>Líquido</th>
+                            <th>Alunos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    resultado.resultados.forEach(r => {
+        html += `
+            <tr>
+                <td><strong>${r.rota}</strong></td>
+                <td>R$ ${r.bruto.toFixed(2)}</td>
+                <td>${r.percBruto}%</td>
+                <td>R$ ${r.auxilio.toFixed(2)}</td>
+                <td>${r.percAuxilio}%</td>
+                <td>R$ ${r.aposAuxilio.toFixed(2)}</td>
+                <td>R$ ${r.passagens.toFixed(2)}</td>
+                <td><strong>R$ ${r.aposPassagens.toFixed(2)}</strong></td>
+                <td>${r.totalAlunos}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            <tr class="table-total">
+                <td><strong>TOTAL</strong></td>
+                <td><strong>R$ ${resultado.totais.bruto.toFixed(2)}</strong></td>
+                <td>100%</td>
+                <td><strong>R$ ${resultado.totais.auxilio.toFixed(2)}</strong></td>
+                <td>100%</td>
+                <td><strong>R$ ${(resultado.totais.bruto - resultado.totais.auxilio).toFixed(2)}</strong></td>
+                <td><strong>R$ ${resultado.totais.passagens.toFixed(2)}</strong></td>
+                <td><strong>R$ ${(resultado.totais.bruto - resultado.totais.auxilio - resultado.totais.passagens).toFixed(2)}</strong></td>
+                <td><strong>${resultado.totais.alunos}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    `;
+    
+    // Detalhamento por rota
+    resultado.resultados.forEach(r => {
+        html += `
+            <div class="card" style="margin-top: 1.5rem;">
+                <h4 class="card-title">${r.rota} - Rateio por Aluno</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aluno</th>
+                                <th>Tipo</th>
+                                <th>Desconto</th>
+                                <th>Valor a Pagar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        r.alunos.forEach(a => {
+            html += `
+                <tr>
+                    <td>${a.nome}</td>
+                    <td>${a.integral ? 'Integral' : 'Com Desconto'}</td>
+                    <td>${a.integral ? '-' : a.desconto + '%'}</td>
+                    <td><strong>R$ ${a.valorPagar.toFixed(2)}</strong></td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('resultado-calculo').innerHTML = html;
+}
+
+function limparCalculo() {
+    document.getElementById('auxilio-dinheiro').value = '0';
+    document.getElementById('auxilio-combustivel').value = '0';
+    document.getElementById('resultado-calculo').innerHTML = '';
+}
+
+function salvarNoHistorico() {
+    if (!state.calculoAtual) {
+        mostrarNotificacao('Nenhum cálculo para salvar', 'warning');
+        return;
+    }
+    
+    state.historicoCalculos.push(state.calculoAtual);
+    salvarBackup();
+    mostrarNotificacao('Cálculo salvo no histórico!', 'success');
+}
+
+// ========== FUNÇÕES DE HISTÓRICO ==========
+function renderHistorico() {
+    if (!state.historicoCalculos.length) {
+        return `
+            <div class="card text-center" style="padding: 3rem;">
+                <i class="fas fa-history" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Nenhum cálculo no histórico</h3>
+                <p style="color: var(--text-muted);">Realize um cálculo e salve para aparecer aqui</p>
+            </div>
+        `;
+    }
+    
+    let html = `
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-history"></i>
+                Histórico de Cálculos
+            </h2>
+            <button class="btn btn-danger" onclick="limparHistorico()">
+                <i class="fas fa-trash-alt"></i>
+                Limpar Histórico
+            </button>
+        </div>
+    `;
+    
+    [...state.historicoCalculos].reverse().forEach((calc, idx) => {
+        const index = state.historicoCalculos.length - 1 - idx;
+        html += `
+            <div class="card hover-lift">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            ${new Date(calc.data).toLocaleString()}
+                        </h3>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <span class="badge badge-primary">
+                                <i class="fas fa-money-bill"></i> R$ ${calc.auxilioDinheiro}
+                            </span>
+                            <span class="badge badge-success">
+                                <i class="fas fa-gas-pump"></i> R$ ${calc.auxilioCombustivel}
+                            </span>
+                            <span class="badge badge-warning">
+                                <i class="fas fa-calculator"></i> Total: R$ ${calc.auxilioTotal}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline" onclick="visualizarCalculo(${index})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="excluirCalculo(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
+                    <div class="stat-card">
+                        <div class="stat-value">${calc.resultados.length}</div>
+                        <div class="stat-label">Rotas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">R$ ${calc.totais.bruto.toFixed(2)}</div>
+                        <div class="stat-label">Bruto Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">R$ ${calc.totais.passagens.toFixed(2)}</div>
+                        <div class="stat-label">Passagens</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calc.totais.alunos}</div>
+                        <div class="stat-label">Alunos</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+function visualizarCalculo(index) {
+    state.calculoAtual = state.historicoCalculos[index];
+    mudarPagina('relatorio');
+}
+
+function excluirCalculo(index) {
+    if (confirm('Tem certeza que deseja excluir este cálculo?')) {
+        state.historicoCalculos.splice(index, 1);
+        salvarBackup();
+        mostrarNotificacao('Cálculo excluído!', 'success');
+        render();
     }
 }
 
-/* Utilitários */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-4 { margin-top: 1rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.p-2 { padding: 0.5rem; }
-.p-4 { padding: 1rem; }
-
-/* Animações de hover */
-.hover-lift {
-    transition: var(--transition);
+function limparHistorico() {
+    if (confirm('Tem certeza que deseja limpar todo o histórico?')) {
+        state.historicoCalculos = [];
+        salvarBackup();
+        mostrarNotificacao('Histórico limpo!', 'success');
+        render();
+    }
 }
 
-.hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+// ========== FUNÇÕES DE RELATÓRIO ==========
+function renderRelatorio() {
+    if (!state.calculoAtual) {
+        return `
+            <div class="card text-center" style="padding: 3rem;">
+                <i class="fas fa-file-pdf" style="font-size: 4rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Nenhum cálculo selecionado</h3>
+                <p style="color: var(--text-muted);">Selecione um cálculo no histórico para visualizar o relatório</p>
+                <button class="btn btn-primary" onclick="mudarPagina('historico')">
+                    <i class="fas fa-history"></i>
+                    Ver Histórico
+                </button>
+            </div>
+        `;
+    }
+    
+    const calc = state.calculoAtual;
+    
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-file-pdf"></i>
+                    Relatório de Cálculo
+                </h2>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="exportarParaExcel()">
+                        <i class="fas fa-file-excel"></i>
+                        Excel
+                    </button>
+                    <button class="btn btn-danger" onclick="exportarParaPDF()">
+                        <i class="fas fa-file-pdf"></i>
+                        PDF
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h3>Informações Gerais</h3>
+                <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-value">${new Date(calc.data).toLocaleDateString()}</div>
+                        <div class="stat-label">Data</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${calc.usuario}</div>
+                        <div class="stat-label">Usuário</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">R$ ${calc.auxilioTotal.toFixed(2)}</div>
+                        <div class="stat-label">Auxílio Total</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h3>Resumo por Rota</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rota</th>
+                                <th>Bruto</th>
+                                <th>Auxílio</th>
+                                <th>Passagens</th>
+                                <th>Líquido</th>
+                                <th>Alunos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    calc.resultados.forEach(r => {
+        html += `
+            <tr>
+                <td><strong>${r.rota}</strong></td>
+                <td>R$ ${r.bruto.toFixed(2)}</td>
+                <td>R$ ${r.auxilio.toFixed(2)}</td>
+                <td>R$ ${r.passagens.toFixed(2)}</td>
+                <td>R$ ${r.aposPassagens.toFixed(2)}</td>
+                <td>${r.totalAlunos}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 2rem;">
+                <h3>Detalhamento de Veículos</h3>
+    `;
+    
+    calc.resultados.forEach(r => {
+        html += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4>${r.rota}</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Veículo</th>
+                                <th>Diária</th>
+                                <th>Qtd</th>
+                                <th>Dias</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        r.veiculos.forEach(v => {
+            const custo = calcularCustoVeiculo(v);
+            html += `
+                <tr>
+                    <td>${v.nome}</td>
+                    <td>R$ ${v.valorDiaria.toFixed(2)}</td>
+                    <td>${v.qtdDiarias}</td>
+                    <td>${v.diasRodados}</td>
+                    <td>R$ ${custo.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                            <tr class="table-total">
+                                <td colspan="4"><strong>Total</strong></td>
+                                <td><strong>R$ ${r.bruto.toFixed(2)}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+            
+            <div>
+                <h3>Rateio por Aluno</h3>
+    `;
+    
+    calc.resultados.forEach(r => {
+        html += `
+            <div style="margin-bottom: 1.5rem;">
+                <h4>${r.rota}</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aluno</th>
+                                <th>Tipo</th>
+                                <th>Desconto</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        r.alunos.forEach(a => {
+            html += `
+                <tr>
+                    <td>${a.nome}</td>
+                    <td>${a.integral ? 'Integral' : 'Com Desconto'}</td>
+                    <td>${a.integral ? '-' : a.desconto + '%'}</td>
+                    <td>R$ ${a.valorPagar.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        const totalAlunos = r.alunos.reduce((acc, a) => acc + a.valorPagar, 0);
+        html += `
+                            <tr class="table-total">
+                                <td colspan="3"><strong>Total</strong></td>
+                                <td><strong>R$ ${totalAlunos.toFixed(2)}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    return html;
 }
 
-/* Divisores */
-.divider {
-    height: 1px;
-    background: var(--border-color);
-    margin: 1.5rem 0;
+// ========== FUNÇÕES DE BACKUP ==========
+function renderBackup() {
+    return `
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-database"></i>
+                    Backup e Restauração
+                </h2>
+            </div>
+            
+            <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="card text-center">
+                    <i class="fas fa-download" style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;"></i>
+                    <h3>Exportar Backup</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Exportar todos os dados para um arquivo JSON</p>
+                    <button class="btn btn-success" onclick="exportarBackup()">
+                        <i class="fas fa-download"></i>
+                        Exportar
+                    </button>
+                </div>
+                
+                <div class="card text-center">
+                    <i class="fas fa-upload" style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;"></i>
+                    <h3>Importar Backup</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Importar dados de um arquivo JSON</p>
+                    <input type="file" id="backup-file" style="display: none;" accept=".json" onchange="importarBackup(event)">
+                    <button class="btn btn-warning" onclick="document.getElementById('backup-file').click()">
+                        <i class="fas fa-upload"></i>
+                        Importar
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3 class="card-title">Informações do Sistema</h3>
+                <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <div class="stat-value">${state.rotas.length}</div>
+                        <div class="stat-label">Rotas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${state.historicoCalculos.length}</div>
+                        <div class="stat-label">Cálculos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${state.usuarios.length}</div>
+                        <div class="stat-label">Usuários</div>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle"></i>
+                    <div>Os backups são salvos automaticamente no localStorage do navegador. Use a exportação para guardar uma cópia permanente.</div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-/* Stats Cards */
-.stat-card {
-    text-align: center;
-    padding: 1.5rem;
+// ========== FUNÇÕES DE NAVEGAÇÃO ==========
+function mudarPagina(pagina) {
+    state.paginaAtual = pagina;
+    render();
 }
 
-.stat-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--primary);
-    line-height: 1.2;
-}
+// ========== INICIALIZAÇÃO ==========
+document.addEventListener('DOMContentLoaded', () => {
+    carregarBackup();
+    render();
+});
 
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-/* Alertas */
-.alert {
-    padding: 1rem 1.25rem;
-    border-radius: var(--radius-md);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    border-left: 4px solid;
-}
-
-.alert-info {
-    background: rgba(67, 97, 238, 0.1);
-    border-left-color: var(--primary);
-}
-
-.alert-success {
-    background: rgba(76, 201, 240, 0.1);
-    border-left-color: var(--success);
-}
-
-.alert-warning {
-    background: rgba(248, 150, 30, 0.1);
-    border-left-color: var(--warning);
-}
-
-.alert-danger {
-    background: rgba(249, 65, 68, 0.1);
-    border-left-color: var(--danger);
-}
+// Exportar funções globais
+window.fazerLogin = fazerLogin;
+window.logout = logout;
+window.mudarPagina = mudarPagina;
+window.alternarTema = alternarTema;
+window.salvarBackup = salvarBackup;
+window.exportarBackup = exportarBackup;
+window.importarBackup = importarBackup;
+window.adicionarVeiculoPadrao = adicionarVeiculoPadrao;
+window.removerVeiculo = removerVeiculo;
+window.adicionarAluno = adicionarAluno;
+window.adicionarAlunosEmMassa = adicionarAlunosEmMassa;
+window.removerAluno = removerAluno;
+window.salvarRota = salvarRota;
+window.editarRota = editarRota;
+window.excluirRota = excluirRota;
+window.executarCalculo = executarCalculo;
+window.limparCalculo = limparCalculo;
+window.salvarNoHistorico = salvarNoHistorico;
+window.visualizarCalculo = visualizarCalculo;
+window.excluirCalculo = excluirCalculo;
+window.limparHistorico = limparHistorico;
+window.exportarParaExcel = exportarParaExcel;
+window.exportarParaPDF = exportarParaPDF;
