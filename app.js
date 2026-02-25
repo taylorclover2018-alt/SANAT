@@ -1,2655 +1,2654 @@
 // ======================================================================
-// SISTEMA ASSEUF — VERSÃO ULTRA AVANÇADA
-// Núcleo, modelos, utilitários e engine de cálculo
+// ASSEUF - APP.JS PARTE 1/12
+// Núcleo: estado, navegação, layout e primeiro cálculo funcional
 // ======================================================================
 
-// ----------------------------------------------------------------------
-// CONFIGURAÇÃO GLOBAL DO SISTEMA
-// ----------------------------------------------------------------------
+// ---------------------------
+// CONFIGURAÇÃO GERAL
+// ---------------------------
 const CONFIG = {
-    nomeSistema: "ASSEUF — Sistema Avançado de Gestão de Rotas e Alunos",
-    versao: "3.0",
-    moeda: "R$",
-    formatoData: "pt-BR",
-    auxilioPercentualSL: 70,
-    auxilioPercentualCV: 30,
-    limiteDescontoGlobal: 100,
-    limiteDescontoIndividual: 100,
-    temaPadrao: "dark",
-    armazenamentoChaveHistorico: "asseuf_historico_v3",
-    armazenamentoChavePreferencias: "asseuf_prefs_v3"
+  nomeSistema: "ASSEUF — Gestão de Rotas e Alunos",
+  versao: "1.0.0 (Parte 1/12)",
 };
 
-// ----------------------------------------------------------------------
+// ---------------------------
 // ESTADO GLOBAL
-// ----------------------------------------------------------------------
+// ---------------------------
 const state = {
-    paginaAtual: "inicio",
-    historico: carregarHistorico(),
-    preferencias: carregarPreferencias(),
-    ultimoResultado: null,
-    contextoAnalise: null
+  paginaAtual: "inicio",
+  ultimoCalculo: null,
 };
 
-// ----------------------------------------------------------------------
-// MODELOS DE DADOS (CONCEITUAIS)
-// ----------------------------------------------------------------------
-//
-// Rota:
-//  {
-//      id: string,
-//      nome: "Sete Lagoas" | "Curvelo" | outro,
-//      diarias: number,
-//      valorPassagem: number,
-//      numeroVeiculos: number,
-//      custoFixoMensal: number,
-//      alunosSemDesconto: number,
-//      alunosComDesconto: number,
-//      percentualDescontoAlunos: number,
-//      observacoes: string
-//  }
-//
-// ParametrosCalculo:
-//  {
-//      mes: "2025-02",
-//      responsavel: string,
-//      descricaoCalculo: string,
-//      observacoesGerais: string,
-//      rotas: Rota[],
-//      auxilioTotal: number,
-//      descontoGlobalPercentual: number,
-//      observacoesDescontos: string
-//  }
-//
-// ResultadoCalculo:
-//  {
-//      idCalculo: string,
-//      mes: string,
-//      responsavel: string,
-//      descricaoCalculo: string,
-//      observacoesGerais: string,
-//      rotas: ResultadoRota[],
-//      auxilioTotal: number,
-//      descontoGlobalPercentual: number,
-//      descontoGlobalValor: number,
-//      brutoTotal: number,
-//      brutoAposDescontoGlobal: number,
-//      liquidoTotalAntesGlobal: number,
-//      liquidoTotal: number,
-//      totalAlunos: number,
-//      mensalidadeMediaGeral: number,
-//      observacoesDescontos: string,
-//      dataRegistro: string,
-//      parametrosOriginais: ParametrosCalculo
-//  }
-//
-// ResultadoRota:
-//  {
-//      idRota: string,
-//      nome: string,
-//      diarias: number,
-//      valorPassagem: number,
-//      numeroVeiculos: number,
-//      custoFixoMensal: number,
-//      alunosSemDesconto: number,
-//      alunosComDesconto: number,
-//      alunosTotal: number,
-//      percentualDescontoAlunos: number,
-//      bruto: number,
-//      auxilioAplicado: number,
-//      mensalidadeBase: number,
-//      descontoIndividualTotal: number,
-//      liquidoAntesGlobal: number,
-//      liquidoFinal: number,
-//      custoPorAluno: number,
-//      observacoes: string
-//  }
-
-// ----------------------------------------------------------------------
-// UTILITÁRIOS GERAIS
-// ----------------------------------------------------------------------
-
-function gerarId(prefixo = "ID") {
-    return `${prefixo}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+// ---------------------------
+// HELPERS
+// ---------------------------
+function formatarMoeda(v) {
+  if (isNaN(v)) return "R$ 0,00";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function formatarMoeda(valor) {
-    if (isNaN(valor) || valor === null) return `${CONFIG.moeda} 0,00`;
-    return valor.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
-}
-
-function formatarNumero(valor, casas = 2) {
-    if (isNaN(valor) || valor === null) return "0";
-    return valor.toFixed(casas).replace(".", ",");
-}
-
-function formatarDataHora(data = new Date()) {
-    return data.toLocaleString(CONFIG.formatoData);
-}
-
-function clamp(valor, min, max) {
-    return Math.min(Math.max(valor, min), max);
-}
-
-// ----------------------------------------------------------------------
-// ARMAZENAMENTO LOCAL (HISTÓRICO + PREFERÊNCIAS)
-// ----------------------------------------------------------------------
-
-function carregarHistorico() {
-    try {
-        const bruto = localStorage.getItem(CONFIG.armazenamentoChaveHistorico);
-        if (!bruto) return {};
-        const parsed = JSON.parse(bruto);
-        return parsed && typeof parsed === "object" ? parsed : {};
-    } catch (e) {
-        console.error("Erro ao carregar histórico:", e);
-        return {};
-    }
-}
-
-function salvarHistorico() {
-    try {
-        localStorage.setItem(
-            CONFIG.armazenamentoChaveHistorico,
-            JSON.stringify(state.historico)
-        );
-    } catch (e) {
-        console.error("Erro ao salvar histórico:", e);
-    }
-}
-
-function carregarPreferencias() {
-    try {
-        const bruto = localStorage.getItem(CONFIG.armazenamentoChavePreferencias);
-        if (!bruto) {
-            return {
-                tema: CONFIG.temaPadrao,
-                mostrarTooltips: true
-            };
-        }
-        const parsed = JSON.parse(bruto);
-        return parsed && typeof parsed === "object"
-            ? parsed
-            : { tema: CONFIG.temaPadrao, mostrarTooltips: true };
-    } catch (e) {
-        console.error("Erro ao carregar preferências:", e);
-        return {
-            tema: CONFIG.temaPadrao,
-            mostrarTooltips: true
-        };
-    }
-}
-
-function salvarPreferencias() {
-    try {
-        localStorage.setItem(
-            CONFIG.armazenamentoChavePreferencias,
-            JSON.stringify(state.preferencias)
-        );
-    } catch (e) {
-        console.error("Erro ao salvar preferências:", e);
-    }
-}
-
-// ----------------------------------------------------------------------
-// REGISTRO NO HISTÓRICO (POR MÊS, MAS COM MÚLTIPLOS CÁLCULOS SE QUISER)
-// ----------------------------------------------------------------------
-
-/**
- * Estrutura do histórico:
- *  historico[mes] = {
- *      mes,
- *      registros: ResultadoCalculo[],
- *      resumo: {
- *          brutoTotalAcumulado,
- *          liquidoTotalAcumulado,
- *          totalAlunosAcumulado,
- *          mediaMensalidadeGeral,
- *          quantidadeCalculos
- *      }
- *  }
- */
-function registrarNoHistorico(resultadoCalculo) {
-    const mes = resultadoCalculo.mes;
-    if (!state.historico[mes]) {
-        state.historico[mes] = {
-            mes,
-            registros: [],
-            resumo: {
-                brutoTotalAcumulado: 0,
-                liquidoTotalAcumulado: 0,
-                totalAlunosAcumulado: 0,
-                mediaMensalidadeGeral: 0,
-                quantidadeCalculos: 0
-            }
-        };
-    }
-
-    const bloco = state.historico[mes];
-    bloco.registros.push(resultadoCalculo);
-
-    // Recalcular resumo
-    const brutoTotalAcumulado = bloco.registros.reduce(
-        (acc, r) => acc + r.brutoTotal,
-        0
-    );
-    const liquidoTotalAcumulado = bloco.registros.reduce(
-        (acc, r) => acc + r.liquidoTotal,
-        0
-    );
-    const totalAlunosAcumulado = bloco.registros.reduce(
-        (acc, r) => acc + r.totalAlunos,
-        0
-    );
-    const mediaMensalidadeGeral =
-        totalAlunosAcumulado > 0
-            ? liquidoTotalAcumulado / totalAlunosAcumulado
-            : 0;
-
-    bloco.resumo = {
-        brutoTotalAcumulado,
-        liquidoTotalAcumulado,
-        totalAlunosAcumulado,
-        mediaMensalidadeGeral,
-        quantidadeCalculos: bloco.registros.length
-    };
-
-    salvarHistorico();
-}
-
-// ----------------------------------------------------------------------
-// ENGINE DE CÁLCULO — FUNÇÃO PURA QUE RECEBE PARÂMETROS E DEVOLVE RESULTADO
-// ----------------------------------------------------------------------
-
-/**
- * @param {ParametrosCalculo} parametros
- * @returns {ResultadoCalculo}
- */
-function calcularRotasEngine(parametros) {
-    const idCalculo = gerarId("CALC");
-    const dataRegistro = formatarDataHora();
-
-    // Auxílio por rota (proporcional fixo SL/CV, mas pode ser expandido)
-    const auxTotal = parametros.auxilioTotal || 0;
-    const auxSL = auxTotal * (CONFIG.auxilioPercentualSL / 100);
-    const auxCV = auxTotal * (CONFIG.auxilioPercentualCV / 100);
-
-    // Distribuir auxílio entre rotas por nome (se existirem SL/CV)
-    const rotasResultado = [];
-    let brutoTotal = 0;
-    let liquidoTotalAntesGlobal = 0;
-    let totalAlunosGeral = 0;
-
-    parametros.rotas.forEach((rota) => {
-        const idRota = gerarId("ROTA");
-        const alunosTotal =
-            (rota.alunosSemDesconto || 0) + (rota.alunosComDesconto || 0);
-
-        const bruto = (rota.diarias || 0) * (rota.valorPassagem || 0);
-        brutoTotal += bruto;
-
-        const mensalidadeBase =
-            alunosTotal > 0 ? bruto / alunosTotal : 0;
-
-        const percDesc = clamp(
-            rota.percentualDescontoAlunos || 0,
-            0,
-            CONFIG.limiteDescontoIndividual
-        );
-
-        const descontoIndividualTotal =
-            mensalidadeBase * (rota.alunosComDesconto || 0) * (percDesc / 100);
-
-        let auxilioAplicado = 0;
-        if (rota.nome.toLowerCase().includes("sete")) {
-            auxilioAplicado = auxSL;
-        } else if (rota.nome.toLowerCase().includes("curvelo")) {
-            auxilioAplicado = auxCV;
-        } else {
-            // se no futuro tiver outras rotas, pode-se distribuir proporcionalmente
-            auxilioAplicado = 0;
-        }
-
-        const custoFixo = rota.custoFixoMensal || 0;
-
-        const liquidoAntesGlobal =
-            bruto - auxilioAplicado - descontoIndividualTotal - custoFixo;
-
-        liquidoTotalAntesGlobal += liquidoAntesGlobal;
-        totalAlunosGeral += alunosTotal;
-
-        const custoPorAluno =
-            alunosTotal > 0 ? liquidoAntesGlobal / alunosTotal : 0;
-
-        rotasResultado.push({
-            idRota,
-            nome: rota.nome,
-            diarias: rota.diarias,
-            valorPassagem: rota.valorPassagem,
-            numeroVeiculos: rota.numeroVeiculos,
-            custoFixoMensal: custoFixo,
-            alunosSemDesconto: rota.alunosSemDesconto,
-            alunosComDesconto: rota.alunosComDesconto,
-            alunosTotal,
-            percentualDescontoAlunos: percDesc,
-            bruto,
-            auxilioAplicado,
-            mensalidadeBase,
-            descontoIndividualTotal,
-            liquidoAntesGlobal,
-            liquidoFinal: 0, // será ajustado depois do desconto global
-            custoPorAluno,
-            observacoes: rota.observacoes || ""
-        });
-    });
-
-    // Desconto global
-    const descontoGlobalPercentual = clamp(
-        parametros.descontoGlobalPercentual || 0,
-        0,
-        CONFIG.limiteDescontoGlobal
-    );
-    const descontoGlobalValor = brutoTotal * (descontoGlobalPercentual / 100);
-    const brutoAposDescontoGlobal = brutoTotal - descontoGlobalValor;
-
-    // Aplicar desconto global como abatimento adicional proporcional ao bruto de cada rota
-    const liquidoTotalFinal =
-        liquidoTotalAntesGlobal - descontoGlobalValor;
-
-    // Ajustar liquidoFinal de cada rota proporcionalmente
-    rotasResultado.forEach((rr) => {
-        const proporcaoBruto =
-            brutoTotal > 0 ? rr.bruto / brutoTotal : 0;
-        const abatimentoGlobalRota = descontoGlobalValor * proporcaoBruto;
-        rr.liquidoFinal = rr.liquidoAntesGlobal - abatimentoGlobalRota;
-    });
-
-    const mensalidadeMediaGeral =
-        totalAlunosGeral > 0 ? liquidoTotalFinal / totalAlunosGeral : 0;
-
-    const resultado = {
-        idCalculo,
-        mes: parametros.mes,
-        responsavel: parametros.responsavel || "",
-        descricaoCalculo: parametros.descricaoCalculo || "",
-        observacoesGerais: parametros.observacoesGerais || "",
-        rotas: rotasResultado,
-        auxilioTotal: auxTotal,
-        descontoGlobalPercentual,
-        descontoGlobalValor,
-        brutoTotal,
-        brutoAposDescontoGlobal,
-        liquidoTotalAntesGlobal,
-        liquidoTotal: liquidoTotalFinal,
-        totalAlunos: totalAlunosGeral,
-        mensalidadeMediaGeral,
-        observacoesDescontos: parametros.observacoesDescontos || "",
-        dataRegistro,
-        parametrosOriginais: parametros
-    };
-
-    return resultado;
-}
-// ======================================================================
-// PARTE 2 — LAYOUT PRINCIPAL, NAVEGAÇÃO E PÁGINA INICIAL PREMIUM
-// ======================================================================
-
-// ----------------------------------------------------------------------
-// RENDERIZAÇÃO PRINCIPAL
-// ----------------------------------------------------------------------
-
+// ---------------------------
+// NAVEGAÇÃO
+// ---------------------------
 function navegarPara(pagina) {
-    state.paginaAtual = pagina;
-    render();
+  state.paginaAtual = pagina;
+  atualizarNav();
+  render();
 }
 
-document.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-page]");
-    if (btn) {
-        const pagina = btn.getAttribute("data-page");
-        navegarPara(pagina);
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
+
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("relatorios", "Relatórios", "📊", true)}
+    ${botaoNav("pdf", "PDF", "📄", true)}
+    ${botaoNav("config", "Configurações", "⚙️", true)}
+  `;
+
+  // marcar ativo
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
     }
-});
-
-function render() {
-    const app = document.getElementById("app");
-    if (!app) return;
-
-    app.innerHTML = `
-        ${layoutShellTopo()}
-        <main class="app-main">
-            ${renderPaginaAtual()}
-        </main>
-    `;
-
-    aplicarTemaAtual();
-}
-
-// ----------------------------------------------------------------------
-// LAYOUT SHELL (HEADER + NAV)
-// ----------------------------------------------------------------------
-
-function layoutShellTopo() {
-    return `
-        <style>
-            body {
-                margin: 0;
-                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                background: #111;
-                color: #f5f5f5;
-            }
-
-            .app-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 16px 24px;
-                background: linear-gradient(90deg, #111, #1f1f1f);
-                border-bottom: 1px solid #333;
-                position: sticky;
-                top: 0;
-                z-index: 50;
-            }
-
-            .app-title-block {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .app-title {
-                font-size: 20px;
-                font-weight: 700;
-                letter-spacing: 0.04em;
-            }
-
-            .app-subtitle {
-                font-size: 12px;
-                opacity: 0.7;
-            }
-
-            .app-badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 4px 10px;
-                border-radius: 999px;
-                background: rgba(76, 175, 80, 0.12);
-                color: #a5d6a7;
-                font-size: 11px;
-                margin-top: 6px;
-            }
-
-            .app-badge-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: #4CAF50;
-                box-shadow: 0 0 6px #4CAF50;
-            }
-
-            .app-nav {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-            }
-
-            .nav-btn {
-                border: none;
-                padding: 8px 14px;
-                border-radius: 999px;
-                background: #1f1f1f;
-                color: #f5f5f5;
-                font-size: 13px;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                cursor: pointer;
-                transition: background .2s, transform .15s, box-shadow .15s;
-            }
-
-            .nav-btn span.icon {
-                font-size: 14px;
-            }
-
-            .nav-btn.active {
-                background: #4CAF50;
-                color: #111;
-                box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
-            }
-
-            .nav-btn:hover {
-                background: #333;
-                transform: translateY(-1px);
-            }
-
-            .nav-btn.active:hover {
-                background: #43A047;
-            }
-
-            .nav-btn-secondary {
-                background: #222;
-                border: 1px solid #444;
-            }
-
-            .app-main {
-                max-width: 1100px;
-                margin: 24px auto 40px auto;
-                padding: 0 16px;
-            }
-
-            .card {
-                background: #181818;
-                border-radius: 14px;
-                padding: 20px 22px;
-                box-shadow: 0 0 18px rgba(0,0,0,0.6);
-                border: 1px solid #2a2a2a;
-            }
-
-            .section-title {
-                font-size: 18px;
-                font-weight: 600;
-                margin: 0 0 4px 0;
-            }
-
-            .section-subtitle {
-                font-size: 13px;
-                opacity: 0.75;
-                margin-bottom: 12px;
-            }
-
-            .divider {
-                height: 1px;
-                background: linear-gradient(90deg, #444, #222);
-                margin: 10px 0 18px 0;
-            }
-
-            .btn-primary {
-                border: none;
-                padding: 10px 18px;
-                border-radius: 999px;
-                background: linear-gradient(90deg, #4CAF50, #66BB6A);
-                color: #111;
-                font-weight: 600;
-                font-size: 14px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
-                transition: transform .15s, box-shadow .15s, filter .15s;
-            }
-
-            .btn-primary:hover {
-                transform: translateY(-1px);
-                filter: brightness(1.05);
-                box-shadow: 0 0 16px rgba(76, 175, 80, 0.8);
-            }
-
-            .btn-ghost {
-                border-radius: 999px;
-                border: 1px solid #444;
-                background: transparent;
-                color: #f5f5f5;
-                padding: 8px 14px;
-                font-size: 13px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                transition: background .15s, border-color .15s;
-            }
-
-            .btn-ghost:hover {
-                background: #222;
-                border-color: #666;
-            }
-
-            .dashboard-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                gap: 16px;
-                margin-top: 10px;
-            }
-
-            .dash-card {
-                background: #1d1d1d;
-                border-radius: 12px;
-                padding: 14px 16px;
-                border: 1px solid #2b2b2b;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                transition: transform .15s, box-shadow .15s, border-color .15s;
-            }
-
-            .dash-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 0 16px rgba(0,0,0,0.7);
-                border-color: #3a3a3a;
-            }
-
-            .dash-label {
-                font-size: 12px;
-                opacity: 0.7;
-            }
-
-            .dash-value {
-                font-size: 20px;
-                font-weight: 600;
-            }
-
-            .dash-footer {
-                font-size: 11px;
-                opacity: 0.7;
-            }
-        </style>
-
-        <header class="app-header">
-            <div class="app-title-block">
-                <div class="app-title">${CONFIG.nomeSistema}</div>
-                <div class="app-subtitle">Versão ${CONFIG.versao} — Gestão completa de rotas, alunos, custos e relatórios</div>
-                <div class="app-badge">
-                    <span class="app-badge-dot"></span>
-                    Engine de cálculo avançada ativa
-                </div>
-            </div>
-
-            <nav class="app-nav">
-                ${botaoNav("inicio", "Início", "🏠")}
-                ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
-                ${botaoNav("relatorios", "Relatórios", "📊")}
-                ${botaoNav("pdf", "PDF Detalhado", "📄")}
-                ${botaoNav("config", "Configurações", "⚙️", true)}
-            </nav>
-        </header>
-    `;
+  });
 }
 
 function botaoNav(pagina, rotulo, icone, secundario = false) {
-    const ativa = state.paginaAtual === pagina;
-    const classes = [
-        "nav-btn",
-        secundario ? "nav-btn-secondary" : "",
-        ativa ? "active" : ""
-    ]
-        .filter(Boolean)
-        .join(" ");
+  const classes = ["nav-btn"];
+  if (secundario) classes.push("secondary");
+  if (pagina === state.paginaAtual) classes.push("active");
 
-    return `
-        <button class="${classes}" data-page="${pagina}">
-            <span class="icon">${icone}</span>
-            <span>${rotulo}</span>
+  return `
+    <button class="${classes.join(" ")}" data-page="${pagina}">
+      <span class="icon">${icone}</span>
+      <span>${rotulo}</span>
+    </button>
+  `;
+}
+
+// clique global para navegação
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-page]");
+  if (!btn) return;
+  const pagina = btn.getAttribute("data-page");
+  navegarPara(pagina);
+});
+
+// ---------------------------
+// RENDERIZAÇÃO PRINCIPAL
+// ---------------------------
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "relatorios":
+      conteudo = paginaPlaceholder("Relatórios", "Os relatórios avançados entrarão nas próximas partes.");
+      break;
+    case "pdf":
+      conteudo = paginaPlaceholder("PDF", "O gerador de PDF detalhado virá nas próximas partes.");
+      break;
+    case "config":
+      conteudo = paginaPlaceholder("Configurações", "As configurações avançadas serão adicionadas depois.");
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+}
+
+// ---------------------------
+// PÁGINA INICIAL
+// ---------------------------
+function paginaInicio() {
+  const temCalculo = !!state.ultimoCalculo;
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title-block">
+          <div class="card-title">Painel inicial</div>
+          <div class="card-subtitle">
+            Bem-vindo ao ASSEUF. Esta é a base do sistema. Nas próximas partes, tudo vai ficar mais profundo e detalhado.
+          </div>
+        </div>
+        <div class="pill">
+          <span>Versão</span>
+          <strong>${CONFIG.versao}</strong>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Último cálculo registrado</div>
+          <div class="dash-value">
+            ${temCalculo ? formatarMoeda(state.ultimoCalculo.totalBruto) : "—"}
+          </div>
+          <div class="dash-footer">
+            ${temCalculo ? "Baseado nos dados da última simulação." : "Nenhum cálculo foi feito ainda."}
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Rotas consideradas</div>
+          <div class="dash-value">Sete Lagoas & Curvelo</div>
+          <div class="dash-footer">Modelo inicial de duas rotas fixas.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Modo de uso</div>
+          <div class="dash-value">Básico</div>
+          <div class="dash-footer">As próximas partes vão liberar recursos avançados.</div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" type="button" data-page="calculo">
+          <span>🧮</span>
+          <span>Ir para Cadastro & Cálculo</span>
         </button>
-    `;
+
+        <button class="btn-ghost" type="button" data-page="relatorios">
+          <span>📊</span>
+          <span>Ver relatórios (em breve)</span>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
-// ----------------------------------------------------------------------
-// RENDERIZAÇÃO DA PÁGINA ATUAL
-// ----------------------------------------------------------------------
-
-function renderPaginaAtual() {
-    switch (state.paginaAtual) {
-        case "inicio":
-            return paginaInicioPremium();
-        case "calculo":
-            return paginaCalculoPremium();   // ← AQUI ESTÁ A TROCA IMPORTANTE
-        case "relatorios":
-            return paginaRelatorios();
-        case "pdf":
-            return paginaPDF();
-        case "config":
-            return paginaConfigPlaceholder();
-        default:
-            return `<p>Erro ao carregar página.</p>`;
-    }
-}
-
-// ----------------------------------------------------------------------
-// PÁGINA INICIAL PREMIUM
-// ----------------------------------------------------------------------
-
-function paginaInicioPremium() {
-    const meses = Object.keys(state.historico);
-    const totalMeses = meses.length;
-
-    let brutoAcum = 0;
-    let liquidoAcum = 0;
-    let alunosAcum = 0;
-
-    meses.forEach((m) => {
-        const bloco = state.historico[m];
-        brutoAcum += bloco.resumo.brutoTotalAcumulado;
-        liquidoAcum += bloco.resumo.liquidoTotalAcumulado;
-        alunosAcum += bloco.resumo.totalAlunosAcumulado;
-    });
-
-    const mediaMensalidadeGeral =
-        alunosAcum > 0 ? liquidoAcum / alunosAcum : 0;
-
-    return `
-        <div class="card">
-            <h2 class="section-title">Painel Geral</h2>
-            <p class="section-subtitle">
-                Visão consolidada das rotas, alunos, custos e resultados financeiros.
-            </p>
-            <div class="divider"></div>
-
-            <div class="dashboard-grid">
-                <div class="dash-card">
-                    <div class="dash-label">Meses com registros</div>
-                    <div class="dash-value">${totalMeses}</div>
-                </div>
-
-                <div class="dash-card">
-                    <div class="dash-label">Bruto acumulado</div>
-                    <div class="dash-value">${formatarMoeda(brutoAcum)}</div>
-                </div>
-
-                <div class="dash-card">
-                    <div class="dash-label">Líquido acumulado</div>
-                    <div class="dash-value">${formatarMoeda(liquidoAcum)}</div>
-                </div>
-
-                <div class="dash-card">
-                    <div class="dash-label">Alunos totais</div>
-                    <div class="dash-value">${alunosAcum}</div>
-                </div>
-            </div>
-
-            <div style="margin-top:22px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                <button class="btn-primary" data-page="calculo">
-                    <span>🧮</span>
-                    <span>Novo cálculo detalhado</span>
-                </button>
-
-                <button class="btn-ghost" data-page="relatorios">
-                    <span>📊</span>
-                    <span>Ver relatórios avançados</span>
-                </button>
-
-                <button class="btn-ghost" data-page="pdf">
-                    <span>📄</span>
-                    <span>Gerar PDF do último cálculo</span>
-                </button>
-            </div>
+// ---------------------------
+// PÁGINA DE CÁLCULO BÁSICO (JÁ FUNCIONA)
+// ---------------------------
+function paginaCalculoBasico() {
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title-block">
+          <div class="card-title">Cadastro & Cálculo — Base</div>
+          <div class="card-subtitle">
+            Informe os dados básicos das rotas Sete Lagoas e Curvelo. Nas próximas partes, vamos adicionar descontos, auxílio, custos fixos e muito mais.
+          </div>
         </div>
-    `;
-}
-
-// ----------------------------------------------------------------------
-// PLACEHOLDERS (apenas para Configurações)
-// ----------------------------------------------------------------------
-
-function paginaConfigPlaceholder() {
-    return `
-        <div class="card">
-            <h2 class="section-title">Configurações</h2>
-            <p class="section-subtitle">
-                Preferências do sistema.
-            </p>
-            <div class="divider"></div>
-            <p>Configurações avançadas virão na Parte 7.</p>
+        <div class="pill">
+          <span>Módulo</span>
+          <strong>Parte 1/12</strong>
         </div>
-    `;
-}
+      </div>
 
-// ----------------------------------------------------------------------
-// APLICAÇÃO DE TEMA
-// ----------------------------------------------------------------------
+      <div class="divider"></div>
 
-function aplicarTemaAtual() {
-    const tema = state.preferencias.tema || CONFIG.temaPadrao;
-    document.body.dataset.tema = tema;
-}}
-// ======================================================================
-// PARTE 3.1 — UI PREMIUM DO CADASTRO & CÁLCULO
-// ======================================================================
-
-// Esta parte cria:
-// - Seções colapsáveis
-// - Botões premium
-// - Layout avançado
-// - Estrutura completa das rotas
-// - Campos visuais (sem lógica ainda)
-// - Tooltips
-// - Animações
-// - Cards profissionais
-// - Base para cálculos da Parte 3.2 e 3.3
-
-// ----------------------------------------------------------------------
-// PÁGINA DE CADASTRO & CÁLCULO (UI COMPLETA)
-// ----------------------------------------------------------------------
-
-function paginaCalculoPremium() {
-    return `
-        <style>
-            /* ----------------------------------------------------------
-               ESTILO GERAL DA TELA DE CADASTRO PREMIUM
-            ---------------------------------------------------------- */
-
-            .calc-container {
-                display: flex;
-                flex-direction: column;
-                gap: 26px;
-            }
-
-            .section-card {
-                background: #181818;
-                border-radius: 16px;
-                padding: 22px 24px;
-                border: 1px solid #2a2a2a;
-                box-shadow: 0 0 18px rgba(0,0,0,0.6);
-                transition: transform .2s, box-shadow .2s;
-            }
-
-            .section-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 0 22px rgba(0,0,0,0.75);
-            }
-
-            .section-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                cursor: pointer;
-            }
-
-            .section-title {
-                font-size: 18px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .section-icon {
-                font-size: 20px;
-            }
-
-            .collapse-btn {
-                background: #222;
-                border: 1px solid #444;
-                border-radius: 999px;
-                padding: 6px 12px;
-                font-size: 12px;
-                cursor: pointer;
-                transition: background .2s, transform .2s;
-            }
-
-            .collapse-btn:hover {
-                background: #333;
-                transform: translateY(-1px);
-            }
-
-            .section-body {
-                margin-top: 18px;
-                display: none;
-                animation: fadeIn .3s ease forwards;
-            }
-
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(6px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-
-            .form-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                gap: 18px;
-            }
-
-            .input-block {
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            .input-block label {
-                font-size: 13px;
-                font-weight: 600;
-                opacity: 0.85;
-            }
-
-            .input-block input {
-                background: #222;
-                border: 1px solid #333;
-                padding: 10px 12px;
-                border-radius: 10px;
-                color: #f5f5f5;
-                font-size: 14px;
-                transition: border-color .2s, background .2s;
-            }
-
-            .input-block input:focus {
-                border-color: #4CAF50;
-                background: #1b1b1b;
-                outline: none;
-            }
-
-            .tooltip {
-                font-size: 11px;
-                opacity: 0.6;
-            }
-
-            .btn-calc {
-                margin-top: 20px;
-                padding: 12px 20px;
-                border-radius: 999px;
-                border: none;
-                background: linear-gradient(90deg, #4CAF50, #66BB6A);
-                color: #111;
-                font-weight: 700;
-                font-size: 15px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 10px;
-                box-shadow: 0 0 14px rgba(76, 175, 80, 0.6);
-                transition: transform .2s, box-shadow .2s;
-            }
-
-            .btn-calc:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
-            }
-
-            .rota-tag {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 4px 10px;
-                border-radius: 999px;
-                font-size: 11px;
-                background: rgba(76, 175, 80, 0.12);
-                color: #A5D6A7;
-            }
-
-            .divider {
-                height: 1px;
-                background: linear-gradient(90deg, #444, #222);
-                margin: 14px 0;
-            }
-        </style>
-
-        <div class="calc-container">
-
-            <!-- =======================================================
-                 SEÇÃO 1 — IDENTIFICAÇÃO GERAL
-            ======================================================= -->
-            <div class="section-card">
-                <div class="section-header" onclick="toggleSection(this)">
-                    <div class="section-title">
-                        <span class="section-icon">🧾</span>
-                        Identificação Geral
-                    </div>
-                    <button class="collapse-btn">Expandir</button>
-                </div>
-
-                <div class="section-body">
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Mês de Referência</label>
-                            <input id="mesRef" type="month">
-                            <div class="tooltip">Escolha o mês do cálculo</div>
-                        </div>
-
-                        <div class="input-block">
-                            <label>Responsável pelo Cálculo</label>
-                            <input id="responsavel" type="text" placeholder="Ex: Taylor Santos">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Descrição do Cálculo</label>
-                            <input id="descricaoCalculo" type="text" placeholder="Ex: Rotas regulares do mês">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Observações Gerais</label>
-                            <input id="obsGerais" type="text" placeholder="Ex: reajuste de passagem, feriados...">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- =======================================================
-                 SEÇÃO 2 — ROTA SETE LAGOAS
-            ======================================================= -->
-            <div class="section-card">
-                <div class="section-header" onclick="toggleSection(this)">
-                    <div class="section-title">
-                        <span class="section-icon">🚌</span>
-                        Rota — Sete Lagoas
-                        <span class="rota-tag">SL</span>
-                    </div>
-                    <button class="collapse-btn">Expandir</button>
-                </div>
-
-                <div class="section-body">
-                    <h4>Dados Operacionais</h4>
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Diárias SL</label>
-                            <input id="sl_diarias" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Valor da Passagem SL</label>
-                            <input id="sl_passagem" type="number" min="0" step="0.01">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Número de Veículos SL</label>
-                            <input id="sl_veiculos" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Custo Fixo Mensal SL</label>
-                            <input id="sl_custoFixo" type="number" min="0" step="0.01">
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <h4>Alunos — SL</h4>
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Alunos sem desconto</label>
-                            <input id="sl_semDesc" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Alunos com desconto</label>
-                            <input id="sl_comDesc" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Percentual de desconto (%)</label>
-                            <input id="sl_percDesc" type="number" min="0" max="100">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Observações SL</label>
-                            <input id="sl_obs" type="text">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- =======================================================
-                 SEÇÃO 3 — ROTA CURVELO
-            ======================================================= -->
-            <div class="section-card">
-                <div class="section-header" onclick="toggleSection(this)">
-                    <div class="section-title">
-                        <span class="section-icon">🚌</span>
-                        Rota — Curvelo
-                        <span class="rota-tag">CV</span>
-                    </div>
-                    <button class="collapse-btn">Expandir</button>
-                </div>
-
-                <div class="section-body">
-                    <h4>Dados Operacionais</h4>
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Diárias CV</label>
-                            <input id="cv_diarias" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Valor da Passagem CV</label>
-                            <input id="cv_passagem" type="number" min="0" step="0.01">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Número de Veículos CV</label>
-                            <input id="cv_veiculos" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Custo Fixo Mensal CV</label>
-                            <input id="cv_custoFixo" type="number" min="0" step="0.01">
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <h4>Alunos — CV</h4>
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Alunos sem desconto</label>
-                            <input id="cv_semDesc" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Alunos com desconto</label>
-                            <input id="cv_comDesc" type="number" min="0">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Percentual de desconto (%)</label>
-                            <input id="cv_percDesc" type="number" min="0" max="100">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Observações CV</label>
-                            <input id="cv_obs" type="text">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- =======================================================
-                 SEÇÃO 4 — AUXÍLIO E DESCONTOS GERAIS
-            ======================================================= -->
-            <div class="section-card">
-                <div class="section-header" onclick="toggleSection(this)">
-                    <div class="section-title">
-                        <span class="section-icon">💰</span>
-                        Auxílio Transporte & Descontos Globais
-                    </div>
-                    <button class="collapse-btn">Expandir</button>
-                </div>
-
-                <div class="section-body">
-                    <div class="form-grid">
-                        <div class="input-block">
-                            <label>Auxílio Total</label>
-                            <input id="aux_total" type="number" min="0" step="0.01">
-                            <div class="tooltip">Distribuição automática: 70% SL / 30% CV</div>
-                        </div>
-
-                        <div class="input-block">
-                            <label>Desconto Global (%)</label>
-                            <input id="desc_global" type="number" min="0" max="100">
-                        </div>
-
-                        <div class="input-block">
-                            <label>Observações de Descontos</label>
-                            <input id="obs_desc" type="text">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- =======================================================
-                 BOTÃO FINAL
-            ======================================================= -->
-            <button class="btn-calc" onclick="calcularRotasParte32()">
-                <span>🧮</span>
-                <span>Gerar Cálculo Ultra Detalhado</span>
-            </button>
-
+      <h4>Rota Sete Lagoas</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Diárias (SL)</div>
+          <input id="sl_diarias" type="number" value="20" min="0" />
         </div>
+        <div class="dash-card">
+          <div class="dash-label">Valor da passagem (SL)</div>
+          <input id="sl_passagem" type="number" value="15" min="0" step="0.01" />
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Alunos (SL)</div>
+          <input id="sl_alunos" type="number" value="10" min="0" />
+        </div>
+      </div>
+
+      <h4 style="margin-top:18px;">Rota Curvelo</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Diárias (CV)</div>
+          <input id="cv_diarias" type="number" value="20" min="0" />
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Valor da passagem (CV)</div>
+          <input id="cv_passagem" type="number" value="18" min="0" step="0.01" />
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Alunos (CV)</div>
+          <input id="cv_alunos" type="number" value="8" min="0" />
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" type="button" onclick="calcularBasico()">
+          <span>⚙️</span>
+          <span>Calcular</span>
+        </button>
+      </div>
+
+      <div id="resultado-basico" class="dashboard-grid" style="margin-top:18px; display:none;"></div>
+    </div>
+  `;
+}
+
+// ---------------------------
+// LÓGICA DO CÁLCULO BÁSICO
+// ---------------------------
+function calcularBasico() {
+  const sl_diarias = Number(document.getElementById("sl_diarias").value);
+  const sl_passagem = Number(document.getElementById("sl_passagem").value);
+  const sl_alunos = Number(document.getElementById("sl_alunos").value);
+
+  const cv_diarias = Number(document.getElementById("cv_diarias").value);
+  const cv_passagem = Number(document.getElementById("cv_passagem").value);
+  const cv_alunos = Number(document.getElementById("cv_alunos").value);
+
+  const sl_bruto = sl_diarias * sl_passagem;
+  const cv_bruto = cv_diarias * cv_passagem;
+  const totalBruto = sl_bruto + cv_bruto;
+
+  const totalAlunos = sl_alunos + cv_alunos;
+  const custoAlunoGeral = totalAlunos > 0 ? totalBruto / totalAlunos : 0;
+
+  state.ultimoCalculo = {
+    sl_bruto,
+    cv_bruto,
+    totalBruto,
+    totalAlunos,
+    custoAlunoGeral,
+  };
+
+  const container = document.getElementById("resultado-basico");
+  if (!container) return;
+
+  container.style.display = "grid";
+  container.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-label">Bruto Sete Lagoas</div>
+      <div class="dash-value">${formatarMoeda(sl_bruto)}</div>
+      <div class="dash-footer">Diárias × passagem (SL).</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto Curvelo</div>
+      <div class="dash-value">${formatarMoeda(cv_bruto)}</div>
+      <div class="dash-footer">Diárias × passagem (CV).</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto total</div>
+      <div class="dash-value">${formatarMoeda(totalBruto)}</div>
+      <div class="dash-footer">Soma das duas rotas.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Total de alunos</div>
+      <div class="dash-value">${totalAlunos}</div>
+      <div class="dash-footer">SL + CV.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Custo médio por aluno</div>
+      <div class="dash-value">${formatarMoeda(custoAlunoGeral)}</div>
+      <div class="dash-footer">Bruto total ÷ total de alunos.</div>
+    </div>
+  `;
+
+  // Atualiza painel inicial
+  render();
+}
+
+// ---------------------------
+// PLACEHOLDER SIMPLES PARA OUTRAS PÁGINAS
+// ---------------------------
+function paginaPlaceholder(titulo, texto) {
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title-block">
+          <div class="card-title">${titulo}</div>
+          <div class="card-subtitle">${texto}</div>
+        </div>
+        <div class="pill">
+          <span>Parte 1/12</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <p style="font-size:13px; color:var(--text-muted);">
+        Nesta primeira parte, apenas a tela de <strong>Cadastro & Cálculo</strong> está funcional.
+        As próximas partes vão liberar relatórios, PDF, gráficos e configurações avançadas.
+      </p>
+    </div>
+  `;
+}
+
+// ---------------------------
+// INICIALIZAÇÃO
+// ---------------------------
+window.addEventListener("DOMContentLoaded", () => {
+  atualizarNav();
+  render();
+});
+// ======================================================================
+// ASSEUF - APP.JS PARTE 2/12
+// Evolução: Componentização, páginas modulares e cálculo melhorado
+// ======================================================================
+
+// ----------------------------------------------------------------------
+// SISTEMA DE COMPONENTES (BASE PARA AS PRÓXIMAS PARTES)
+// ----------------------------------------------------------------------
+
+const UI = {
+  titulo(secao, subtitulo = "") {
+    return `
+      <div class="card-header">
+        <div class="card-title-block">
+          <div class="card-title">${secao}</div>
+          <div class="card-subtitle">${subtitulo}</div>
+        </div>
+        <div class="pill">
+          <span>Módulo</span>
+          <strong>Parte 2/12</strong>
+        </div>
+      </div>
+      <div class="divider"></div>
     `;
+  },
+
+  input(label, id, value = "", type = "number") {
+    return `
+      <div class="dash-card">
+        <div class="dash-label">${label}</div>
+        <input id="${id}" type="${type}" value="${value}" min="0" />
+      </div>
+    `;
+  },
+
+  bloco(titulo) {
+    return `<h4 style="margin-top:18px;">${titulo}</h4>`;
+  }
+};
+
+// ----------------------------------------------------------------------
+// PÁGINA DE CÁLCULO — EVOLUÇÃO PARTE 2
+// ----------------------------------------------------------------------
+
+function paginaCalculoBasico() {
+  return `
+    <div class="card">
+      ${UI.titulo(
+        "Cadastro & Cálculo — Evolução",
+        "Agora com validação e estrutura modular."
+      )}
+
+      ${UI.bloco("Rota Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (SL)", "sl_diarias", 20)}
+        ${UI.input("Valor da passagem (SL)", "sl_passagem", 15)}
+        ${UI.input("Alunos (SL)", "sl_alunos", 10)}
+      </div>
+
+      ${UI.bloco("Rota Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (CV)", "cv_diarias", 20)}
+        ${UI.input("Valor da passagem (CV)", "cv_passagem", 18)}
+        ${UI.input("Alunos (CV)", "cv_alunos", 8)}
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" type="button" onclick="calcularParte2()">
+          <span>⚙️</span>
+          <span>Calcular (Parte 2)</span>
+        </button>
+      </div>
+
+      <div id="resultado-parte2" class="dashboard-grid" style="margin-top:18px; display:none;"></div>
+    </div>
+  `;
 }
 
 // ----------------------------------------------------------------------
-// FUNÇÃO PARA EXPANDIR/RECOLHER SEÇÕES
+// LÓGICA DO CÁLCULO — PARTE 2
 // ----------------------------------------------------------------------
 
-function toggleSection(header) {
-    const body = header.parentElement.querySelector(".section-body");
-    const btn = header.querySelector(".collapse-btn");
+function calcularParte2() {
+  const sl_d = Number(document.getElementById("sl_diarias").value);
+  const sl_p = Number(document.getElementById("sl_passagem").value);
+  const sl_a = Number(document.getElementById("sl_alunos").value);
 
-    if (body.style.display === "block") {
-        body.style.display = "none";
-        btn.textContent = "Expandir";
-    } else {
-        body.style.display = "block";
-        btn.textContent = "Recolher";
-    }
+  const cv_d = Number(document.getElementById("cv_diarias").value);
+  const cv_p = Number(document.getElementById("cv_passagem").value);
+  const cv_a = Number(document.getElementById("cv_alunos").value);
+
+  // Validação simples
+  if ([sl_d, sl_p, sl_a, cv_d, cv_p, cv_a].some(v => v < 0)) {
+    alert("Nenhum valor pode ser negativo.");
+    return;
+  }
+
+  // Cálculos
+  const sl_bruto = sl_d * sl_p;
+  const cv_bruto = cv_d * cv_p;
+  const totalBruto = sl_bruto + cv_bruto;
+
+  const totalAlunos = sl_a + cv_a;
+  const custoAlunoGeral = totalAlunos > 0 ? totalBruto / totalAlunos : 0;
+
+  // Salvar no estado
+  state.ultimoCalculo = {
+    sl_bruto,
+    cv_bruto,
+    totalBruto,
+    totalAlunos,
+    custoAlunoGeral,
+  };
+
+  // Renderizar resultado
+  const box = document.getElementById("resultado-parte2");
+  box.style.display = "grid";
+  box.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-label">Bruto SL</div>
+      <div class="dash-value">${formatarMoeda(sl_bruto)}</div>
+      <div class="dash-footer">Parte 2</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto CV</div>
+      <div class="dash-value">${formatarMoeda(cv_bruto)}</div>
+      <div class="dash-footer">Parte 2</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto Total</div>
+      <div class="dash-value">${formatarMoeda(totalBruto)}</div>
+      <div class="dash-footer">Parte 2</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Total de alunos</div>
+      <div class="dash-value">${totalAlunos}</div>
+      <div class="dash-footer">Parte 2</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Custo médio por aluno</div>
+      <div class="dash-value">${formatarMoeda(custoAlunoGeral)}</div>
+      <div class="dash-footer">Parte 2</div>
+    </div>
+  `;
+
+  render(); // atualiza painel inicial
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 3/12
+// Cálculo com alunos com desconto e valor líquido por rota
+// ======================================================================
+
+// Reescreve a página de cálculo para versão mais detalhada
+function paginaCalculoBasico() {
+  return `
+    <div class="card">
+      ${UI.titulo(
+        "Cadastro & Cálculo — Parte 3",
+        "Agora com alunos com desconto e cálculo do valor líquido."
+      )}
+
+      ${UI.bloco("Rota Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (SL)", "sl_diarias", 20)}
+        ${UI.input("Valor da passagem (SL)", "sl_passagem", 15)}
+        ${UI.input("Alunos SL (sem desconto)", "sl_alunos", 10)}
+        ${UI.input("Alunos SL (com desconto)", "sl_alunos_desc", 2)}
+        ${UI.input("% de desconto (SL)", "sl_percent_desc", 50)}
+      </div>
+
+      ${UI.bloco("Rota Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (CV)", "cv_diarias", 20)}
+        ${UI.input("Valor da passagem (CV)", "cv_passagem", 18)}
+        ${UI.input("Alunos CV (sem desconto)", "cv_alunos", 8)}
+        ${UI.input("Alunos CV (com desconto)", "cv_alunos_desc", 1)}
+        ${UI.input("% de desconto (CV)", "cv_percent_desc", 50)}
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" type="button" onclick="calcularParte3()">
+          <span>🧮</span>
+          <span>Calcular (Parte 3)</span>
+        </button>
+      </div>
+
+      <div id="resultado-parte3" class="dashboard-grid" style="margin-top:18px; display:none;"></div>
+    </div>
+  `;
 }
 
-// ----------------------------------------------------------------------
-// PLACEHOLDER DA FUNÇÃO DE CÁLCULO (PARTE 3.2 VAI SUBSTITUIR)
-// ----------------------------------------------------------------------
+// Lógica de cálculo avançado com desconto
+function calcularParte3() {
+  // SL
+  const sl_d = Number(document.getElementById("sl_diarias").value);
+  const sl_p = Number(document.getElementById("sl_passagem").value);
+  const sl_a = Number(document.getElementById("sl_alunos").value);
+  const sl_a_desc = Number(document.getElementById("sl_alunos_desc").value);
+  const sl_percent = Number(document.getElementById("sl_percent_desc").value);
 
-function calcularRotasParte32() {
-    alert("A PARTE 3.2 vai ativar os cálculos avançados.");
+  // CV
+  const cv_d = Number(document.getElementById("cv_diarias").value);
+  const cv_p = Number(document.getElementById("cv_passagem").value);
+  const cv_a = Number(document.getElementById("cv_alunos").value);
+  const cv_a_desc = Number(document.getElementById("cv_alunos_desc").value);
+  const cv_percent = Number(document.getElementById("cv_percent_desc").value);
+
+  const valores = [sl_d, sl_p, sl_a, sl_a_desc, sl_percent, cv_d, cv_p, cv_a, cv_a_desc, cv_percent];
+  if (valores.some(v => v < 0)) {
+    alert("Nenhum valor pode ser negativo.");
+    return;
+  }
+
+  // Bruto por rota
+  const sl_bruto = sl_d * sl_p;
+  const cv_bruto = cv_d * cv_p;
+
+  // Total de alunos por rota
+  const sl_totalAlunos = sl_a + sl_a_desc;
+  const cv_totalAlunos = cv_a + cv_a_desc;
+
+  // Mensalidade base por rota
+  const sl_base = sl_totalAlunos > 0 ? sl_bruto / sl_totalAlunos : 0;
+  const cv_base = cv_totalAlunos > 0 ? cv_bruto / cv_totalAlunos : 0;
+
+  // Desconto total por rota
+  const sl_descontoTotal = sl_base * sl_a_desc * (sl_percent / 100);
+  const cv_descontoTotal = cv_base * cv_a_desc * (cv_percent / 100);
+
+  // Líquido por rota
+  const sl_liquido = sl_bruto - sl_descontoTotal;
+  const cv_liquido = cv_bruto - cv_descontoTotal;
+
+  // Geral
+  const brutoTotal = sl_bruto + cv_bruto;
+  const liquidoTotal = sl_liquido + cv_liquido;
+  const totalAlunosGeral = sl_totalAlunos + cv_totalAlunos;
+  const custoMedioLiquido = totalAlunosGeral > 0 ? liquidoTotal / totalAlunosGeral : 0;
+
+  // Salva no estado
+  state.ultimoCalculo = {
+    sl_bruto,
+    cv_bruto,
+    sl_liquido,
+    cv_liquido,
+    brutoTotal,
+    liquidoTotal,
+    totalAlunosGeral,
+    custoMedioLiquido,
+  };
+
+  const box = document.getElementById("resultado-parte3");
+  box.style.display = "grid";
+  box.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-label">Bruto SL</div>
+      <div class="dash-value">${formatarMoeda(sl_bruto)}</div>
+      <div class="dash-footer">Antes dos descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido SL</div>
+      <div class="dash-value">${formatarMoeda(sl_liquido)}</div>
+      <div class="dash-footer">Após desconto de alunos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto CV</div>
+      <div class="dash-value">${formatarMoeda(cv_bruto)}</div>
+      <div class="dash-footer">Antes dos descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido CV</div>
+      <div class="dash-value">${formatarMoeda(cv_liquido)}</div>
+      <div class="dash-footer">Após desconto de alunos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto total</div>
+      <div class="dash-value">${formatarMoeda(brutoTotal)}</div>
+      <div class="dash-footer">Soma SL + CV.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido total</div>
+      <div class="dash-value">${formatarMoeda(liquidoTotal)}</div>
+      <div class="dash-footer">Após todos os descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Total de alunos</div>
+      <div class="dash-value">${totalAlunosGeral}</div>
+      <div class="dash-footer">SL + CV (com e sem desconto).</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Custo médio líquido por aluno</div>
+      <div class="dash-value">${formatarMoeda(custoMedioLiquido)}</div>
+      <div class="dash-footer">Líquido total ÷ total de alunos.</div>
+    </div>
+  `;
+
+  render(); // atualiza painel inicial com o novo último cálculo
 }
 // ======================================================================
-// PARTE 3.2 — CAPTURA DE DADOS, VALIDAÇÕES E MONTAGEM DAS ROTAS
-// ======================================================================
-//
-// Esta parte transforma a UI da Parte 3.1 em um sistema funcional,
-// capturando todos os campos e montando um objeto de parâmetros
-// COMPLETO, pronto para ser enviado à engine de cálculo da Parte 3.3.
-//
+// ASSEUF - APP.JS PARTE 4/12
+// Custos fixos, custos variáveis, custo operacional e integração total
 // ======================================================================
 
+// Expande a página de cálculo para incluir custos fixos e variáveis
+function paginaCalculoBasico() {
+  return `
+    <div class="card">
+      ${UI.titulo(
+        "Cadastro & Cálculo — Parte 4",
+        "Agora com custos fixos, variáveis e custo operacional completo."
+      )}
 
-// ----------------------------------------------------------------------
-// FUNÇÃO PRINCIPAL — CAPTURAR DADOS E VALIDAR
-// ----------------------------------------------------------------------
+      <!-- ROTAS -->
+      ${UI.bloco("Rota Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (SL)", "sl_diarias", 20)}
+        ${UI.input("Valor da passagem (SL)", "sl_passagem", 15)}
+        ${UI.input("Alunos SL (sem desconto)", "sl_alunos", 10)}
+        ${UI.input("Alunos SL (com desconto)", "sl_alunos_desc", 2)}
+        ${UI.input("% de desconto (SL)", "sl_percent_desc", 50)}
+      </div>
 
-function calcularRotasParte32() {
-    // --------------------------------------------------------------
-    // 1. CAPTURA DOS CAMPOS GERAIS
-    // --------------------------------------------------------------
-    const mes = document.getElementById("mesRef").value;
-    const responsavel = document.getElementById("responsavel").value.trim();
-    const descricaoCalculo = document.getElementById("descricaoCalculo").value.trim();
-    const obsGerais = document.getElementById("obsGerais").value.trim();
+      ${UI.bloco("Custos — Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Custo fixo SL", "sl_custo_fixo", 1200)}
+        ${UI.input("Custo variável SL", "sl_custo_var", 600)}
+        ${UI.input("Custo por veículo SL", "sl_custo_veic", 300)}
+        ${UI.input("Custo por diária SL", "sl_custo_diaria", 40)}
+      </div>
 
-    // Validação mínima
-    if (!mes) {
-        alert("Selecione o mês de referência.");
-        return;
-    }
+      ${UI.bloco("Rota Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (CV)", "cv_diarias", 20)}
+        ${UI.input("Valor da passagem (CV)", "cv_passagem", 18)}
+        ${UI.input("Alunos CV (sem desconto)", "cv_alunos", 8)}
+        ${UI.input("Alunos CV (com desconto)", "cv_alunos_desc", 1)}
+        ${UI.input("% de desconto (CV)", "cv_percent_desc", 50)}
+      </div>
 
-    if (!responsavel) {
-        alert("Informe o responsável pelo cálculo.");
-        return;
-    }
+      ${UI.bloco("Custos — Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Custo fixo CV", "cv_custo_fixo", 900)}
+        ${UI.input("Custo variável CV", "cv_custo_var", 500)}
+        ${UI.input("Custo por veículo CV", "cv_custo_veic", 250)}
+        ${UI.input("Custo por diária CV", "cv_custo_diaria", 35)}
+      </div>
 
-    // --------------------------------------------------------------
-    // 2. CAPTURA DA ROTA SETE LAGOAS
-    // --------------------------------------------------------------
-    const sl = {
-        nome: "Sete Lagoas",
-        diarias: Number(document.getElementById("sl_diarias").value),
-        valorPassagem: Number(document.getElementById("sl_passagem").value),
-        numeroVeiculos: Number(document.getElementById("sl_veiculos").value),
-        custoFixoMensal: Number(document.getElementById("sl_custoFixo").value),
-        alunosSemDesconto: Number(document.getElementById("sl_semDesc").value),
-        alunosComDesconto: Number(document.getElementById("sl_comDesc").value),
-        percentualDescontoAlunos: Number(document.getElementById("sl_percDesc").value),
-        observacoes: document.getElementById("sl_obs").value.trim()
+      <div class="actions-row">
+        <button class="btn-primary" type="button" onclick="calcularParte4()">
+          <span>🧮</span>
+          <span>Calcular (Parte 4)</span>
+        </button>
+      </div>
+
+      <div id="resultado-parte4" class="dashboard-grid" style="margin-top:18px; display:none;"></div>
+    </div>
+  `;
+}
+
+// Lógica completa da Parte 4
+function calcularParte4() {
+  // -----------------------------
+  // CAPTURA DE DADOS
+  // -----------------------------
+
+  // SL
+  const sl_d = Number(sl_diarias.value);
+  const sl_p = Number(sl_passagem.value);
+  const sl_a = Number(sl_alunos.value);
+  const sl_a_desc = Number(sl_alunos_desc.value);
+  const sl_percent = Number(sl_percent_desc.value);
+
+  const sl_fix = Number(sl_custo_fixo.value);
+  const sl_var = Number(sl_custo_var.value);
+  const sl_veic = Number(sl_custo_veic.value);
+  const sl_diaria_custo = Number(sl_custo_diaria.value);
+
+  // CV
+  const cv_d = Number(cv_diarias.value);
+  const cv_p = Number(cv_passagem.value);
+  const cv_a = Number(cv_alunos.value);
+  const cv_a_desc = Number(cv_alunos_desc.value);
+  const cv_percent = Number(cv_percent_desc.value);
+
+  const cv_fix = Number(cv_custo_fixo.value);
+  const cv_var = Number(cv_custo_var.value);
+  const cv_veic = Number(cv_custo_veic.value);
+  const cv_diaria_custo = Number(cv_custo_diaria.value);
+
+  // -----------------------------
+  // CÁLCULO BRUTO
+  // -----------------------------
+  const sl_bruto = sl_d * sl_p;
+  const cv_bruto = cv_d * cv_p;
+
+  // -----------------------------
+  // CÁLCULO DE DESCONTOS
+  // -----------------------------
+  const sl_totalAlunos = sl_a + sl_a_desc;
+  const cv_totalAlunos = cv_a + cv_a_desc;
+
+  const sl_base = sl_totalAlunos > 0 ? sl_bruto / sl_totalAlunos : 0;
+  const cv_base = cv_totalAlunos > 0 ? cv_bruto / cv_totalAlunos : 0;
+
+  const sl_descontoTotal = sl_base * sl_a_desc * (sl_percent / 100);
+  const cv_descontoTotal = cv_base * cv_a_desc * (cv_percent / 100);
+
+  const sl_liquido = sl_bruto - sl_descontoTotal;
+  const cv_liquido = cv_bruto - cv_descontoTotal;
+
+  // -----------------------------
+  // CUSTOS OPERACIONAIS
+  // -----------------------------
+  const sl_operacional =
+    sl_fix + sl_var + sl_veic + sl_diaria_custo * sl_d;
+
+  const cv_operacional =
+    cv_fix + cv_var + cv_veic + cv_diaria_custo * cv_d;
+
+  // -----------------------------
+  // RESULTADOS GERAIS
+  // -----------------------------
+  const brutoTotal = sl_bruto + cv_bruto;
+  const liquidoTotal = sl_liquido + cv_liquido;
+  const operacionalTotal = sl_operacional + cv_operacional;
+
+  const totalAlunosGeral = sl_totalAlunos + cv_totalAlunos;
+
+  const custoOperAluno =
+    totalAlunosGeral > 0 ? operacionalTotal / totalAlunosGeral : 0;
+
+  // -----------------------------
+  // SALVAR NO ESTADO
+  // -----------------------------
+  state.ultimoCalculo = {
+    sl_bruto,
+    cv_bruto,
+    sl_liquido,
+    cv_liquido,
+    sl_operacional,
+    cv_operacional,
+    brutoTotal,
+    liquidoTotal,
+    operacionalTotal,
+    totalAlunosGeral,
+    custoOperAluno,
+  };
+
+  // -----------------------------
+  // RENDERIZAÇÃO
+  // -----------------------------
+  const box = document.getElementById("resultado-parte4");
+  box.style.display = "grid";
+
+  box.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-label">Bruto SL</div>
+      <div class="dash-value">${formatarMoeda(sl_bruto)}</div>
+      <div class="dash-footer">Receita total antes de descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido SL</div>
+      <div class="dash-value">${formatarMoeda(sl_liquido)}</div>
+      <div class="dash-footer">Após descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Operacional SL</div>
+      <div class="dash-value">${formatarMoeda(sl_operacional)}</div>
+      <div class="dash-footer">Custos fixos + variáveis + veículo + diárias.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Bruto CV</div>
+      <div class="dash-value">${formatarMoeda(cv_bruto)}</div>
+      <div class="dash-footer">Receita total antes de descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido CV</div>
+      <div class="dash-value">${formatarMoeda(cv_liquido)}</div>
+      <div class="dash-footer">Após descontos.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Operacional CV</div>
+      <div class="dash-value">${formatarMoeda(cv_operacional)}</div>
+      <div class="dash-footer">Custos fixos + variáveis + veículo + diárias.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Operacional total</div>
+      <div class="dash-value">${formatarMoeda(operacionalTotal)}</div>
+      <div class="dash-footer">Soma SL + CV.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Custo operacional por aluno</div>
+      <div class="dash-value">${formatarMoeda(custoOperAluno)}</div>
+      <div class="dash-footer">Operacional total ÷ total de alunos.</div>
+    </div>
+  `;
+
+  render();
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 5/12
+// Auxílio, desconto global e custo final completo
+// ======================================================================
+
+// Expande a página de cálculo para incluir auxílio e desconto global
+function paginaCalculoBasico() {
+  return `
+    <div class="card">
+      ${UI.titulo(
+        "Cadastro & Cálculo — Parte 5",
+        "Agora com auxílio, desconto global e custo final completo."
+      )}
+
+      <!-- ROTAS -->
+      ${UI.bloco("Rota Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (SL)", "sl_diarias", 20)}
+        ${UI.input("Valor da passagem (SL)", "sl_passagem", 15)}
+        ${UI.input("Alunos SL (sem desconto)", "sl_alunos", 10)}
+        ${UI.input("Alunos SL (com desconto)", "sl_alunos_desc", 2)}
+        ${UI.input("% de desconto (SL)", "sl_percent_desc", 50)}
+      </div>
+
+      ${UI.bloco("Custos — Sete Lagoas")}
+      <div class="dashboard-grid">
+        ${UI.input("Custo fixo SL", "sl_custo_fixo", 1200)}
+        ${UI.input("Custo variável SL", "sl_custo_var", 600)}
+        ${UI.input("Custo por veículo SL", "sl_custo_veic", 300)}
+        ${UI.input("Custo por diária SL", "sl_custo_diaria", 40)}
+      </div>
+
+      ${UI.bloco("Rota Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Diárias (CV)", "cv_diarias", 20)}
+        ${UI.input("Valor da passagem (CV)", "cv_passagem", 18)}
+        ${UI.input("Alunos CV (sem desconto)", "cv_alunos", 8)}
+        ${UI.input("Alunos CV (com desconto)", "cv_alunos_desc", 1)}
+        ${UI.input("% de desconto (CV)", "cv_percent_desc", 50)}
+      </div>
+
+      ${UI.bloco("Custos — Curvelo")}
+      <div class="dashboard-grid">
+        ${UI.input("Custo fixo CV", "cv_custo_fixo", 900)}
+        ${UI.input("Custo variável CV", "cv_custo_var", 500)}
+        ${UI.input("Custo por veículo CV", "cv_custo_veic", 250)}
+        ${UI.input("Custo por diária CV", "cv_custo_diaria", 35)}
+      </div>
+
+      ${UI.bloco("Auxílio e Desconto Global")}
+      <div class="dashboard-grid">
+        ${UI.input("Auxílio total (R$)", "aux_total", 0)}
+        ${UI.input("Desconto global (%)", "desc_global", 0)}
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" type="button" onclick="calcularParte5()">
+          <span>🧮</span>
+          <span>Calcular (Parte 5)</span>
+        </button>
+      </div>
+
+      <div id="resultado-parte5" class="dashboard-grid" style="margin-top:18px; display:none;"></div>
+    </div>
+  `;
+}
+
+// Lógica completa da Parte 5
+function calcularParte5() {
+  // -----------------------------
+  // CAPTURA DE DADOS
+  // -----------------------------
+
+  // SL
+  const sl_d = Number(sl_diarias.value);
+  const sl_p = Number(sl_passagem.value);
+  const sl_a = Number(sl_alunos.value);
+  const sl_a_desc = Number(sl_alunos_desc.value);
+  const sl_percent = Number(sl_percent_desc.value);
+
+  const sl_fix = Number(sl_custo_fixo.value);
+  const sl_var = Number(sl_custo_var.value);
+  const sl_veic = Number(sl_custo_veic.value);
+  const sl_diaria_custo = Number(sl_custo_diaria.value);
+
+  // CV
+  const cv_d = Number(cv_diarias.value);
+  const cv_p = Number(cv_passagem.value);
+  const cv_a = Number(cv_alunos.value);
+  const cv_a_desc = Number(cv_alunos_desc.value);
+  const cv_percent = Number(cv_percent_desc.value);
+
+  const cv_fix = Number(cv_custo_fixo.value);
+  const cv_var = Number(cv_custo_var.value);
+  const cv_veic = Number(cv_custo_veic.value);
+  const cv_diaria_custo = Number(cv_custo_diaria.value);
+
+  // Auxílio e desconto global
+  const aux_total = Number(aux_total.value);
+  const desc_global = Number(desc_global.value);
+
+  // -----------------------------
+  // CÁLCULO BRUTO
+  // -----------------------------
+  const sl_bruto = sl_d * sl_p;
+  const cv_bruto = cv_d * cv_p;
+
+  // -----------------------------
+  // CÁLCULO DE DESCONTOS
+  // -----------------------------
+  const sl_totalAlunos = sl_a + sl_a_desc;
+  const cv_totalAlunos = cv_a + cv_a_desc;
+
+  const sl_base = sl_totalAlunos > 0 ? sl_bruto / sl_totalAlunos : 0;
+  const cv_base = cv_totalAlunos > 0 ? cv_bruto / cv_totalAlunos : 0;
+
+  const sl_descontoTotal = sl_base * sl_a_desc * (sl_percent / 100);
+  const cv_descontoTotal = cv_base * cv_a_desc * (cv_percent / 100);
+
+  const sl_liquido = sl_bruto - sl_descontoTotal;
+  const cv_liquido = cv_bruto - cv_descontoTotal;
+
+  // -----------------------------
+  // CUSTOS OPERACIONAIS
+  // -----------------------------
+  const sl_operacional =
+    sl_fix + sl_var + sl_veic + sl_diaria_custo * sl_d;
+
+  const cv_operacional =
+    cv_fix + cv_var + cv_veic + cv_diaria_custo * cv_d;
+
+  // -----------------------------
+  // APLICAÇÃO DO AUXÍLIO
+  // -----------------------------
+  const liquidoComAuxilio = sl_liquido + cv_liquido - aux_total;
+
+  // -----------------------------
+  // DESCONTO GLOBAL
+  // -----------------------------
+  const valorDescontoGlobal = liquidoComAuxilio * (desc_global / 100);
+  const liquidoFinal = liquidoComAuxilio - valorDescontoGlobal;
+
+  // -----------------------------
+  // RESULTADOS GERAIS
+  // -----------------------------
+  const brutoTotal = sl_bruto + cv_bruto;
+  const liquidoTotal = sl_liquido + cv_liquido;
+  const operacionalTotal = sl_operacional + cv_operacional;
+
+  const totalAlunosGeral = sl_totalAlunos + cv_totalAlunos;
+
+  const custoFinalAluno =
+    totalAlunosGeral > 0 ? liquidoFinal / totalAlunosGeral : 0;
+
+  // -----------------------------
+  // SALVAR NO ESTADO
+  // -----------------------------
+  state.ultimoCalculo = {
+    sl_bruto,
+    cv_bruto,
+    sl_liquido,
+    cv_liquido,
+    sl_operacional,
+    cv_operacional,
+    brutoTotal,
+    liquidoTotal,
+    operacionalTotal,
+    aux_total,
+    desc_global,
+    liquidoFinal,
+    custoFinalAluno,
+  };
+
+  // -----------------------------
+  // RENDERIZAÇÃO
+  // -----------------------------
+  const box = document.getElementById("resultado-parte5");
+  box.style.display = "grid";
+
+  box.innerHTML = `
+    <div class="dash-card">
+      <div class="dash-label">Bruto total</div>
+      <div class="dash-value">${formatarMoeda(brutoTotal)}</div>
+      <div class="dash-footer">Receita antes de qualquer desconto.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido total</div>
+      <div class="dash-value">${formatarMoeda(liquidoTotal)}</div>
+      <div class="dash-footer">Após descontos individuais.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Auxílio aplicado</div>
+      <div class="dash-value">-${formatarMoeda(aux_total)}</div>
+      <div class="dash-footer">Redução direta no valor final.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Desconto global</div>
+      <div class="dash-value">-${formatarMoeda(valorDescontoGlobal)}</div>
+      <div class="dash-footer">${desc_global}% sobre o valor com auxílio.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Líquido final</div>
+      <div class="dash-value">${formatarMoeda(liquidoFinal)}</div>
+      <div class="dash-footer">Valor final após tudo.</div>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-label">Custo final por aluno</div>
+      <div class="dash-value">${formatarMoeda(custoFinalAluno)}</div>
+      <div class="dash-footer">Líquido final ÷ total de alunos.</div>
+    </div>
+  `;
+
+  render();
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 6/12
+// Gráficos, dashboard visual e percentuais automáticos
+// ======================================================================
+
+// Adiciona uma nova página: Dashboard Visual
+function paginaDashboardVisual() {
+  const calc = state.ultimoCalculo;
+
+  if (!calc) {
+    return `
+      <div class="card">
+        ${UI.titulo("Dashboard Visual", "Nenhum cálculo encontrado")}
+        <p style="color:var(--text-muted); font-size:13px;">
+          Faça um cálculo primeiro para visualizar os gráficos.
+        </p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card">
+      ${UI.titulo("Dashboard Visual — Parte 6", "Gráficos automáticos e comparações")}
+
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Bruto total</div>
+          <div class="dash-value">${formatarMoeda(calc.brutoTotal)}</div>
+          <div class="dash-footer">Receita antes de descontos.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Líquido final</div>
+          <div class="dash-value">${formatarMoeda(calc.liquidoFinal)}</div>
+          <div class="dash-footer">Após auxílio e desconto global.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Operacional total</div>
+          <div class="dash-value">${formatarMoeda(calc.operacionalTotal)}</div>
+          <div class="dash-footer">Custos totais das rotas.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Custo final por aluno</div>
+          <div class="dash-value">${formatarMoeda(calc.custoFinalAluno)}</div>
+          <div class="dash-footer">Valor final dividido pelos alunos.</div>
+        </div>
+      </div>
+
+      <h4 style="margin-top:20px;">Gráficos</h4>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; margin-top:14px;">
+        <canvas id="graficoPizza"></canvas>
+        <canvas id="graficoBarras"></canvas>
+        <canvas id="graficoDonut"></canvas>
+      </div>
+    </div>
+  `;
+}
+
+// Adiciona botão no menu
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
+
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("pdf", "PDF", "📄", true)}
+    ${botaoNav("config", "Configurações", "⚙️", true)}
+  `;
+
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+// Renderização com nova página
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "pdf":
+      conteudo = paginaPlaceholder("PDF", "O gerador de PDF virá nas próximas partes.");
+      break;
+    case "config":
+      conteudo = paginaPlaceholder("Configurações", "Configurações avançadas virão depois.");
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+
+  // Se estiver no dashboard, gerar gráficos
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
+}
+
+// Função para gerar gráficos
+function gerarGraficosParte6() {
+  const calc = state.ultimoCalculo;
+  if (!calc) return;
+
+  // -----------------------------
+  // GRÁFICO PIZZA — Distribuição Bruta SL × CV
+  // -----------------------------
+  new Chart(document.getElementById("graficoPizza"), {
+    type: "pie",
+    data: {
+      labels: ["Sete Lagoas", "Curvelo"],
+      datasets: [
+        {
+          data: [calc.sl_bruto, calc.cv_bruto],
+          backgroundColor: ["#4CAF50", "#66BB6A"],
+        },
+      ],
+    },
+  });
+
+  // -----------------------------
+  // GRÁFICO BARRAS — Bruto × Líquido × Operacional
+  // -----------------------------
+  new Chart(document.getElementById("graficoBarras"), {
+    type: "bar",
+    data: {
+      labels: ["Bruto", "Líquido Final", "Operacional"],
+      datasets: [
+        {
+          label: "Valores",
+          data: [calc.brutoTotal, calc.liquidoFinal, calc.operacionalTotal],
+          backgroundColor: ["#4CAF50", "#42A5F5", "#EF5350"],
+        },
+      ],
+    },
+  });
+
+  // -----------------------------
+  // GRÁFICO DONUT — Percentual de custos
+  // -----------------------------
+  new Chart(document.getElementById("graficoDonut"), {
+    type: "doughnut",
+    data: {
+      labels: ["Operacional", "Auxílio", "Desconto Global"],
+      datasets: [
+        {
+          data: [
+            calc.operacionalTotal,
+            calc.aux_total,
+            calc.liquidoTotal - calc.liquidoFinal,
+          ],
+          backgroundColor: ["#AB47BC", "#FFCA28", "#29B6F6"],
+        },
+      ],
+    },
+  });
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 7/12
+// Histórico de cálculos, resumo mensal e evolução
+// ======================================================================
+
+// Estrutura de histórico
+if (!state.historico) {
+  state.historico = {}; // { "2025-02": { bruto, liquido, operacional, alunos, ... } }
+}
+
+// Função para salvar cálculo no histórico
+function salvarNoHistorico() {
+  const calc = state.ultimoCalculo;
+  if (!calc) return;
+
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+
+  const chave = `${ano}-${mes}`;
+
+  if (!state.historico[chave]) {
+    state.historico[chave] = {
+      bruto: 0,
+      liquido: 0,
+      operacional: 0,
+      alunos: 0,
+      auxilio: 0,
+      descontoGlobal: 0,
+      liquidoFinal: 0,
+      registros: 0,
     };
+  }
 
-    // Validações SL
-    if (sl.diarias < 0 || sl.valorPassagem < 0) {
-        alert("Valores inválidos na rota Sete Lagoas.");
-        return;
-    }
+  const h = state.historico[chave];
 
-    // --------------------------------------------------------------
-    // 3. CAPTURA DA ROTA CURVELO
-    // --------------------------------------------------------------
-    const cv = {
-        nome: "Curvelo",
-        diarias: Number(document.getElementById("cv_diarias").value),
-        valorPassagem: Number(document.getElementById("cv_passagem").value),
-        numeroVeiculos: Number(document.getElementById("cv_veiculos").value),
-        custoFixoMensal: Number(document.getElementById("cv_custoFixo").value),
-        alunosSemDesconto: Number(document.getElementById("cv_semDesc").value),
-        alunosComDesconto: Number(document.getElementById("cv_comDesc").value),
-        percentualDescontoAlunos: Number(document.getElementById("cv_percDesc").value),
-        observacoes: document.getElementById("cv_obs").value.trim()
-    };
-
-    // Validações CV
-    if (cv.diarias < 0 || cv.valorPassagem < 0) {
-        alert("Valores inválidos na rota Curvelo.");
-        return;
-    }
-
-    // --------------------------------------------------------------
-    // 4. AUXÍLIO E DESCONTOS GLOBAIS
-    // --------------------------------------------------------------
-    const auxilioTotal = Number(document.getElementById("aux_total").value);
-    const descontoGlobalPercentual = Number(document.getElementById("desc_global").value);
-    const observacoesDescontos = document.getElementById("obs_desc").value.trim();
-
-    if (auxilioTotal < 0) {
-        alert("O auxílio total não pode ser negativo.");
-        return;
-    }
-
-    if (descontoGlobalPercentual < 0 || descontoGlobalPercentual > 100) {
-        alert("O desconto global deve estar entre 0% e 100%.");
-        return;
-    }
-
-    // --------------------------------------------------------------
-    // 5. MONTAGEM DO OBJETO DE PARÂMETROS COMPLETO
-    // --------------------------------------------------------------
-    const parametros = {
-        mes,
-        responsavel,
-        descricaoCalculo,
-        observacoesGerais: obsGerais,
-        rotas: [sl, cv],
-        auxilioTotal,
-        descontoGlobalPercentual,
-        observacoesDescontos
-    };
-
-    // --------------------------------------------------------------
-    // 6. SALVAR NO STATE PARA A PARTE 3.3 USAR
-    // --------------------------------------------------------------
-    state.contextoAnalise = parametros;
-
-    // --------------------------------------------------------------
-    // 7. CHAMAR A PARTE 3.3 (ENGINE DE CÁLCULO)
-    // --------------------------------------------------------------
-    calcularRotasParte33(parametros);
+  h.bruto += calc.brutoTotal;
+  h.liquido += calc.liquidoTotal;
+  h.operacional += calc.operacionalTotal;
+  h.alunos += calc.totalAlunosGeral;
+  h.auxilio += calc.aux_total;
+  h.descontoGlobal += calc.desc_global;
+  h.liquidoFinal += calc.liquidoFinal;
+  h.registros += 1;
 }
 
+// Modifica o render para incluir nova página
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
 
-// ----------------------------------------------------------------------
-// PLACEHOLDER DA PARTE 3.3 (SERÁ SUBSTITUÍDA NA PRÓXIMA PARTE)
-// ----------------------------------------------------------------------
+  let conteudo = "";
 
-function calcularRotasParte33(parametros) {
-    alert("A PARTE 3.3 vai ativar a engine de cálculo ultra detalhada.");
-}
-// ======================================================================
-// PARTE 3.3 — ENGINE DE CÁLCULO ULTRA DETALHADA + PRÉVIA PREMIUM
-// ======================================================================
-//
-// Esta parte:
-// - recebe os parâmetros montados na Parte 3.2
-// - executa cálculos profundos por rota, aluno, veículo e diária
-// - gera um objeto de resultado COMPLETO
-// - salva no histórico
-// - exibe uma prévia premium com tabelas e indicadores
-//
-// ======================================================================
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "historico":
+      conteudo = paginaHistorico();
+      break;
+    case "pdf":
+      conteudo = paginaPlaceholder("PDF", "O gerador de PDF virá nas próximas partes.");
+      break;
+    case "config":
+      conteudo = paginaPlaceholder("Configurações", "Configurações avançadas virão depois.");
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
 
+  app.innerHTML = conteudo;
 
-// ----------------------------------------------------------------------
-// FUNÇÃO PRINCIPAL — ENGINE DE CÁLCULO COMPLETA
-// ----------------------------------------------------------------------
-
-function calcularRotasParte33(parametros) {
-
-    // --------------------------------------------------------------
-    // 1. Preparação inicial
-    // --------------------------------------------------------------
-    const idCalculo = gerarId("CALC");
-    const dataRegistro = formatarDataHora();
-
-    const auxTotal = parametros.auxilioTotal || 0;
-    const auxSL = auxTotal * 0.70;
-    const auxCV = auxTotal * 0.30;
-
-    let brutoTotal = 0;
-    let liquidoTotalAntesGlobal = 0;
-    let totalAlunosGeral = 0;
-
-    const rotasResultado = [];
-
-    // --------------------------------------------------------------
-    // 2. PROCESSAR CADA ROTA
-    // --------------------------------------------------------------
-    parametros.rotas.forEach((rota) => {
-
-        const idRota = gerarId("ROTA");
-
-        const alunosTotal =
-            (rota.alunosSemDesconto || 0) +
-            (rota.alunosComDesconto || 0);
-
-        const bruto = (rota.diarias || 0) * (rota.valorPassagem || 0);
-        brutoTotal += bruto;
-
-        const mensalidadeBase =
-            alunosTotal > 0 ? bruto / alunosTotal : 0;
-
-        const percDesc = clamp(
-            rota.percentualDescontoAlunos || 0,
-            0,
-            100
-        );
-
-        const descontoIndividualTotal =
-            mensalidadeBase *
-            (rota.alunosComDesconto || 0) *
-            (percDesc / 100);
-
-        let auxilioAplicado = 0;
-        if (rota.nome.toLowerCase().includes("sete")) auxilioAplicado = auxSL;
-        if (rota.nome.toLowerCase().includes("curvelo")) auxilioAplicado = auxCV;
-
-        const custoFixo = rota.custoFixoMensal || 0;
-
-        const liquidoAntesGlobal =
-            bruto - auxilioAplicado - descontoIndividualTotal - custoFixo;
-
-        liquidoTotalAntesGlobal += liquidoAntesGlobal;
-        totalAlunosGeral += alunosTotal;
-
-        const custoPorAluno =
-            alunosTotal > 0 ? liquidoAntesGlobal / alunosTotal : 0;
-
-        const custoPorDiaria =
-            rota.diarias > 0 ? liquidoAntesGlobal / rota.diarias : 0;
-
-        const custoPorVeiculo =
-            rota.numeroVeiculos > 0
-                ? liquidoAntesGlobal / rota.numeroVeiculos
-                : liquidoAntesGlobal;
-
-        rotasResultado.push({
-            idRota,
-            nome: rota.nome,
-            diarias: rota.diarias,
-            valorPassagem: rota.valorPassagem,
-            numeroVeiculos: rota.numeroVeiculos,
-            custoFixoMensal: custoFixo,
-            alunosSemDesconto: rota.alunosSemDesconto,
-            alunosComDesconto: rota.alunosComDesconto,
-            alunosTotal,
-            percentualDescontoAlunos: percDesc,
-            bruto,
-            auxilioAplicado,
-            mensalidadeBase,
-            descontoIndividualTotal,
-            liquidoAntesGlobal,
-            liquidoFinal: 0, // será ajustado após desconto global
-            custoPorAluno,
-            custoPorDiaria,
-            custoPorVeiculo,
-            observacoes: rota.observacoes || ""
-        });
-    });
-
-    // --------------------------------------------------------------
-    // 3. DESCONTO GLOBAL
-    // --------------------------------------------------------------
-    const descontoGlobalPercentual = clamp(
-        parametros.descontoGlobalPercentual || 0,
-        0,
-        100
-    );
-
-    const descontoGlobalValor =
-        brutoTotal * (descontoGlobalPercentual / 100);
-
-    const brutoAposDescontoGlobal =
-        brutoTotal - descontoGlobalValor;
-
-    const liquidoTotalFinal =
-        liquidoTotalAntesGlobal - descontoGlobalValor;
-
-    // Ajustar liquidoFinal proporcionalmente ao bruto de cada rota
-    rotasResultado.forEach((rr) => {
-        const proporcaoBruto =
-            brutoTotal > 0 ? rr.bruto / brutoTotal : 0;
-        const abatimentoGlobalRota =
-            descontoGlobalValor * proporcaoBruto;
-
-        rr.liquidoFinal = rr.liquidoAntesGlobal - abatimentoGlobalRota;
-    });
-
-    const mensalidadeMediaGeral =
-        totalAlunosGeral > 0
-            ? liquidoTotalFinal / totalAlunosGeral
-            : 0;
-
-    // --------------------------------------------------------------
-    // 4. OBJETO FINAL DO RESULTADO
-    // --------------------------------------------------------------
-    const resultado = {
-        idCalculo,
-        mes: parametros.mes,
-        responsavel: parametros.responsavel,
-        descricaoCalculo: parametros.descricaoCalculo,
-        observacoesGerais: parametros.observacoesGerais,
-        rotas: rotasResultado,
-        auxilioTotal: parametros.auxilioTotal,
-        descontoGlobalPercentual,
-        descontoGlobalValor,
-        brutoTotal,
-        brutoAposDescontoGlobal,
-        liquidoTotalAntesGlobal,
-        liquidoTotal: liquidoTotalFinal,
-        totalAlunos: totalAlunosGeral,
-        mensalidadeMediaGeral,
-        observacoesDescontos: parametros.observacoesDescontos,
-        dataRegistro,
-        parametrosOriginais: parametros
-    };
-
-    // --------------------------------------------------------------
-    // 5. SALVAR NO HISTÓRICO
-    // --------------------------------------------------------------
-    registrarNoHistorico(resultado);
-
-    // --------------------------------------------------------------
-    // 6. SALVAR NO STATE
-    // --------------------------------------------------------------
-    state.ultimoResultado = resultado;
-
-    // --------------------------------------------------------------
-    // 7. EXIBIR PRÉVIA PREMIUM
-    // --------------------------------------------------------------
-    mostrarPreviaCalculoPremium(resultado);
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
 }
 
+// Adiciona botão no menu
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
 
-// ----------------------------------------------------------------------
-// PRÉVIA PREMIUM DO RESULTADO (UI COMPLETA)
-// ----------------------------------------------------------------------
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("historico", "Histórico", "📅")}
+    ${botaoNav("pdf", "PDF", "📄", true)}
+    ${botaoNav("config", "Configurações", "⚙️", true)}
+  `;
 
-function mostrarPreviaCalculoPremium(r) {
-    const app = document.getElementById("app");
-    if (!app) return;
-
-    app.innerHTML = `
-        ${layoutShellTopo()}
-        <main class="app-main">
-            <div class="card">
-                <h2 class="section-title">Resultado Ultra Detalhado</h2>
-                <p class="section-subtitle">
-                    Cálculo completo por rota, aluno, diária e veículo.
-                </p>
-                <div class="divider"></div>
-
-                ${blocoResumoGeral(r)}
-                ${blocoRotas(r.rotas)}
-                ${blocoIndicadores(r)}
-                ${blocoBotoesAcoes()}
-            </div>
-        </main>
-    `;
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
 }
 
+// Página de histórico
+function paginaHistorico() {
+  const meses = Object.keys(state.historico).sort();
 
-// ----------------------------------------------------------------------
-// COMPONENTES DA PRÉVIA
-// ----------------------------------------------------------------------
-
-function blocoResumoGeral(r) {
+  if (meses.length === 0) {
     return `
-        <h3>Resumo Geral</h3>
-        <div class="divider"></div>
+      <div class="card">
+        ${UI.titulo("Histórico de Cálculos", "Nenhum cálculo registrado ainda")}
+        <p style="color:var(--text-muted); font-size:13px;">
+          Faça um cálculo para começar a registrar o histórico.
+        </p>
+      </div>
+    `;
+  }
 
-        <div class="dashboard-grid">
-            <div class="dash-card">
-                <div class="dash-label">Bruto Total</div>
-                <div class="dash-value">${formatarMoeda(r.brutoTotal)}</div>
-            </div>
+  let cards = "";
 
-            <div class="dash-card">
-                <div class="dash-label">Líquido Total</div>
-                <div class="dash-value">${formatarMoeda(r.liquidoTotal)}</div>
-            </div>
+  for (const mes of meses) {
+    const h = state.historico[mes];
 
-            <div class="dash-card">
-                <div class="dash-label">Total de Alunos</div>
-                <div class="dash-value">${r.totalAlunos}</div>
-            </div>
-
-            <div class="dash-card">
-                <div class="dash-label">Mensalidade Média Geral</div>
-                <div class="dash-value">${formatarMoeda(r.mensalidadeMediaGeral)}</div>
-            </div>
+    cards += `
+      <div class="dash-card">
+        <div class="dash-label">${mes}</div>
+        <div class="dash-value">${formatarMoeda(h.liquidoFinal)}</div>
+        <div class="dash-footer">
+          ${h.registros} cálculos registrados<br>
+          Bruto: ${formatarMoeda(h.bruto)}<br>
+          Operacional: ${formatarMoeda(h.operacional)}<br>
+          Alunos: ${h.alunos}
         </div>
+      </div>
     `;
+  }
+
+  return `
+    <div class="card">
+      ${UI.titulo("Histórico de Cálculos — Parte 7", "Resumo mensal e evolução")}
+
+      <div class="dashboard-grid">
+        ${cards}
+      </div>
+    </div>
+  `;
 }
 
-function blocoRotas(rotas) {
-    let html = `
-        <h3>Detalhamento por Rota</h3>
-        <div class="divider"></div>
-    `;
+// Integração: toda vez que calcular, salva no histórico
+const _oldCalcularParte5 = calcularParte5;
+calcularParte5 = function () {
+  _oldCalcularParte5();
+  salvarNoHistorico();
+};
+// ======================================================================
+// ASSEUF - APP.JS PARTE 8/12
+// Relatórios avançados: mensal, anual, comparações e resumo financeiro
+// ======================================================================
 
-    rotas.forEach((rota) => {
-        html += `
-            <div class="section-card" style="margin-top:16px;">
-                <h4>${rota.nome}</h4>
-                <div class="divider"></div>
+// -----------------------------
+// PÁGINA DE RELATÓRIOS
+// -----------------------------
+function paginaRelatoriosAvancados() {
+  const meses = Object.keys(state.historico).sort();
 
-                <p><strong>Bruto:</strong> ${formatarMoeda(rota.bruto)}</p>
-                <p><strong>Auxílio aplicado:</strong> ${formatarMoeda(rota.auxilioAplicado)}</p>
-                <p><strong>Desconto individual:</strong> ${formatarMoeda(rota.descontoIndividualTotal)}</p>
-                <p><strong>Custo fixo:</strong> ${formatarMoeda(rota.custoFixoMensal)}</p>
-                <p><strong>Líquido final:</strong> ${formatarMoeda(rota.liquidoFinal)}</p>
-
-                <div class="divider"></div>
-
-                <p><strong>Alunos totais:</strong> ${rota.alunosTotal}</p>
-                <p><strong>Custo por aluno:</strong> ${formatarMoeda(rota.custoPorAluno)}</p>
-                <p><strong>Custo por diária:</strong> ${formatarMoeda(rota.custoPorDiaria)}</p>
-                <p><strong>Custo por veículo:</strong> ${formatarMoeda(rota.custoPorVeiculo)}</p>
-            </div>
-        `;
-    });
-
-    return html;
-}
-
-function blocoIndicadores(r) {
+  if (meses.length === 0) {
     return `
-        <h3>Indicadores Avançados</h3>
-        <div class="divider"></div>
-
-        <p><strong>Impacto do auxílio:</strong> ${formatarMoeda(r.auxilioTotal)}</p>
-        <p><strong>Impacto do desconto global:</strong> ${formatarMoeda(r.descontoGlobalValor)}</p>
-        <p><strong>Impacto total dos descontos individuais:</strong> ${formatarMoeda(
-            r.rotas.reduce((acc, rr) => acc + rr.descontoIndividualTotal, 0)
-        )}</p>
+      <div class="card">
+        ${UI.titulo("Relatórios Avançados", "Nenhum dado disponível")}
+        <p style="color:var(--text-muted); font-size:13px;">
+          Faça pelo menos um cálculo para gerar relatórios.
+        </p>
+      </div>
     `;
-}
+  }
 
-function blocoBotoesAcoes() {
-    return `
-        <div style="margin-top:20px; display:flex; gap:12px;">
-            <button class="btn-primary" data-page="pdf">
-                <span>📄</span>
-                <span>Gerar PDF Detalhado</span>
-            </button>
+  let cards = "";
+  let totalBrutoAno = 0;
+  let totalLiquidoAno = 0;
+  let totalOperacionalAno = 0;
+  let totalAlunosAno = 0;
+  let totalAuxilioAno = 0;
+  let totalDescGlobalAno = 0;
 
-            <button class="btn-ghost" data-page="relatorios">
-                <span>📊</span>
-                <span>Ver Relatórios</span>
-            </button>
+  for (const mes of meses) {
+    const h = state.historico[mes];
 
-            <button class="btn-ghost" data-page="calculo">
-                <span>🔄</span>
-                <span>Novo Cálculo</span>
-            </button>
+    totalBrutoAno += h.bruto;
+    totalLiquidoAno += h.liquidoFinal;
+    totalOperacionalAno += h.operacional;
+    totalAlunosAno += h.alunos;
+    totalAuxilioAno += h.auxilio;
+    totalDescGlobalAno += h.descontoGlobal;
+
+    cards += `
+      <div class="dash-card">
+        <div class="dash-label">${mes}</div>
+        <div class="dash-value">${formatarMoeda(h.liquidoFinal)}</div>
+        <div class="dash-footer">
+          Bruto: ${formatarMoeda(h.bruto)}<br>
+          Operacional: ${formatarMoeda(h.operacional)}<br>
+          Auxílio: ${formatarMoeda(h.auxilio)}<br>
+          Desc. Global: ${h.descontoGlobal}%<br>
+          Alunos: ${h.alunos}<br>
+          Registros: ${h.registros}
         </div>
+      </div>
     `;
-}
-// ======================================================================
-// PARTE 4 — RELATÓRIOS AVANÇADOS + ANÁLISE ESTATÍSTICA + DASHBOARD ANALÍTICO
-// ======================================================================
-//
-// Esta parte cria:
-// - Painel analítico completo
-// - Filtros avançados
-// - Tabelas profissionais
-// - Indicadores estatísticos
-// - Comparações entre meses
-// - Análises financeiras profundas
-// - Análises operacionais
-// - Estrutura para gráficos (ativados na Parte 6)
-//
-// ======================================================================
+  }
 
+  const custoMedioAno =
+    totalAlunosAno > 0 ? totalLiquidoAno / totalAlunosAno : 0;
 
-// ----------------------------------------------------------------------
-// PÁGINA DE RELATÓRIOS AVANÇADOS
-// ----------------------------------------------------------------------
+  return `
+    <div class="card">
+      ${UI.titulo("Relatórios Avançados — Parte 8", "Resumo mensal, anual e comparações")}
 
-function paginaRelatorios() {
-    const meses = Object.keys(state.historico).sort();
+      <h4>Resumo Mensal</h4>
+      <div class="dashboard-grid">${cards}</div>
 
-    return `
-        <style>
-            .relatorio-container {
-                display: flex;
-                flex-direction: column;
-                gap: 26px;
-            }
-
-            .relatorio-card {
-                background: #181818;
-                border-radius: 16px;
-                padding: 22px 24px;
-                border: 1px solid #2a2a2a;
-                box-shadow: 0 0 18px rgba(0,0,0,0.6);
-            }
-
-            .relatorio-title {
-                font-size: 20px;
-                font-weight: 600;
-                margin-bottom: 6px;
-            }
-
-            .relatorio-subtitle {
-                font-size: 13px;
-                opacity: 0.75;
-                margin-bottom: 14px;
-            }
-
-            .filtros-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                gap: 16px;
-            }
-
-            .input-block {
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            .input-block input,
-            .input-block select {
-                background: #222;
-                border: 1px solid #333;
-                padding: 10px 12px;
-                border-radius: 10px;
-                color: #f5f5f5;
-                font-size: 14px;
-            }
-
-            .btn-filtrar {
-                margin-top: 10px;
-                padding: 10px 18px;
-                border-radius: 999px;
-                border: none;
-                background: linear-gradient(90deg, #4CAF50, #66BB6A);
-                color: #111;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform .2s, box-shadow .2s;
-            }
-
-            .btn-filtrar:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 0 16px rgba(76, 175, 80, 0.8);
-            }
-
-            .tabela-relatorio {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 16px;
-            }
-
-            .tabela-relatorio th {
-                background: #222;
-                padding: 12px;
-                text-align: left;
-                font-size: 13px;
-                color: #4CAF50;
-                border-bottom: 1px solid #333;
-            }
-
-            .tabela-relatorio td {
-                padding: 10px;
-                border-bottom: 1px solid #333;
-                font-size: 13px;
-            }
-
-            .tabela-relatorio tr:hover {
-                background: #202020;
-            }
-
-            .indicadores-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                gap: 16px;
-                margin-top: 16px;
-            }
-
-            .indicador-card {
-                background: #1d1d1d;
-                border-radius: 12px;
-                padding: 16px;
-                border: 1px solid #2b2b2b;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            .indicador-label {
-                font-size: 12px;
-                opacity: 0.7;
-            }
-
-            .indicador-value {
-                font-size: 20px;
-                font-weight: 600;
-            }
-
-            .indicador-footer {
-                font-size: 11px;
-                opacity: 0.6;
-            }
-        </style>
-
-        <div class="relatorio-container">
-
-            <!-- =======================================================
-                 FILTROS AVANÇADOS
-            ======================================================= -->
-            <div class="relatorio-card">
-                <div class="relatorio-title">Filtros Avançados</div>
-                <div class="relatorio-subtitle">
-                    Selecione o intervalo de meses e aplique filtros inteligentes.
-                </div>
-
-                <div class="filtros-grid">
-                    <div class="input-block">
-                        <label>Mês inicial</label>
-                        <input type="month" id="filtroMesInicial">
-                    </div>
-
-                    <div class="input-block">
-                        <label>Mês final</label>
-                        <input type="month" id="filtroMesFinal">
-                    </div>
-
-                    <div class="input-block">
-                        <label>Filtrar por rota</label>
-                        <select id="filtroRota">
-                            <option value="">Todas</option>
-                            <option value="Sete Lagoas">Sete Lagoas</option>
-                            <option value="Curvelo">Curvelo</option>
-                        </select>
-                    </div>
-
-                    <div class="input-block">
-                        <label>Mostrar apenas cálculos com desconto</label>
-                        <select id="filtroDesconto">
-                            <option value="">Todos</option>
-                            <option value="sim">Sim</option>
-                            <option value="nao">Não</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button class="btn-filtrar" onclick="aplicarFiltrosRelatorios()">
-                    Aplicar Filtros
-                </button>
-            </div>
-
-            <!-- =======================================================
-                 TABELA PRINCIPAL DE RELATÓRIOS
-            ======================================================= -->
-            <div class="relatorio-card">
-                <div class="relatorio-title">Tabela Consolidada</div>
-                <div class="relatorio-subtitle">
-                    Todos os cálculos registrados, com detalhamento por rota.
-                </div>
-
-                <div id="tabelaRelatoriosContainer">
-                    ${gerarTabelaRelatorios(state.historico)}
-                </div>
-            </div>
-
-            <!-- =======================================================
-                 INDICADORES AVANÇADOS
-            ======================================================= -->
-            <div class="relatorio-card">
-                <div class="relatorio-title">Indicadores Avançados</div>
-                <div class="relatorio-subtitle">
-                    Análises financeiras, operacionais e estatísticas.
-                </div>
-
-                <div id="indicadoresContainer">
-                    ${gerarIndicadoresAvancados(state.historico)}
-                </div>
-            </div>
-
+      <h4 style="margin-top:20px;">Resumo Anual</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Bruto anual</div>
+          <div class="dash-value">${formatarMoeda(totalBrutoAno)}</div>
+          <div class="dash-footer">Soma de todos os meses.</div>
         </div>
-    `;
-}
 
-
-// ----------------------------------------------------------------------
-// GERAR TABELA PRINCIPAL
-// ----------------------------------------------------------------------
-
-function gerarTabelaRelatorios(historico) {
-    const meses = Object.keys(historico).sort();
-
-    if (meses.length === 0) {
-        return `<p>Nenhum registro encontrado.</p>`;
-    }
-
-    let html = `
-        <table class="tabela-relatorio">
-            <thead>
-                <tr>
-                    <th>Mês</th>
-                    <th>Rota</th>
-                    <th>Bruto</th>
-                    <th>Líquido</th>
-                    <th>Alunos</th>
-                    <th>Custo por aluno</th>
-                    <th>Custo por diária</th>
-                    <th>Custo por veículo</th>
-                    <th>Responsável</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    meses.forEach((mes) => {
-        const bloco = historico[mes];
-
-        bloco.registros.forEach((reg) => {
-            reg.rotas.forEach((rota) => {
-                html += `
-                    <tr>
-                        <td>${mes}</td>
-                        <td>${rota.nome}</td>
-                        <td>${formatarMoeda(rota.bruto)}</td>
-                        <td>${formatarMoeda(rota.liquidoFinal)}</td>
-                        <td>${rota.alunosTotal}</td>
-                        <td>${formatarMoeda(rota.custoPorAluno)}</td>
-                        <td>${formatarMoeda(rota.custoPorDiaria)}</td>
-                        <td>${formatarMoeda(rota.custoPorVeiculo)}</td>
-                        <td>${reg.responsavel}</td>
-                        <td>${reg.dataRegistro}</td>
-                    </tr>
-                `;
-            });
-        });
-    });
-
-    html += `
-            </tbody>
-        </table>
-    `;
-
-    return html;
-}
-
-
-// ----------------------------------------------------------------------
-// FILTROS AVANÇADOS
-// ----------------------------------------------------------------------
-
-function aplicarFiltrosRelatorios() {
-    const mesInicial = document.getElementById("filtroMesInicial").value;
-    const mesFinal = document.getElementById("filtroMesFinal").value;
-    const rotaFiltro = document.getElementById("filtroRota").value;
-    const descontoFiltro = document.getElementById("filtroDesconto").value;
-
-    const filtrado = {};
-
-    for (const mes in state.historico) {
-        if (mesInicial && mes < mesInicial) continue;
-        if (mesFinal && mes > mesFinal) continue;
-
-        const bloco = state.historico[mes];
-        const novosRegistros = [];
-
-        bloco.registros.forEach((reg) => {
-            let incluir = true;
-
-            if (rotaFiltro) {
-                incluir = reg.rotas.some((r) => r.nome === rotaFiltro);
-            }
-
-            if (descontoFiltro === "sim") {
-                incluir = incluir && reg.rotas.some((r) => r.descontoIndividualTotal > 0);
-            }
-
-            if (descontoFiltro === "nao") {
-                incluir = incluir && reg.rotas.every((r) => r.descontoIndividualTotal === 0);
-            }
-
-            if (incluir) novosRegistros.push(reg);
-        });
-
-        if (novosRegistros.length > 0) {
-            filtrado[mes] = {
-                ...bloco,
-                registros: novosRegistros
-            };
-        }
-    }
-
-    document.getElementById("tabelaRelatoriosContainer").innerHTML =
-        gerarTabelaRelatorios(filtrado);
-
-    document.getElementById("indicadoresContainer").innerHTML =
-        gerarIndicadoresAvancados(filtrado);
-}
-
-
-// ----------------------------------------------------------------------
-// INDICADORES AVANÇADOS
-// ----------------------------------------------------------------------
-
-function gerarIndicadoresAvancados(historico) {
-    const meses = Object.keys(historico);
-
-    if (meses.length === 0) {
-        return `<p>Nenhum dado disponível para análise.</p>`;
-    }
-
-    let brutoAcum = 0;
-    let liquidoAcum = 0;
-    let alunosAcum = 0;
-    let descontoIndividualAcum = 0;
-    let descontoGlobalAcum = 0;
-
-    meses.forEach((mes) => {
-        const bloco = historico[mes];
-
-        bloco.registros.forEach((reg) => {
-            brutoAcum += reg.brutoTotal;
-            liquidoAcum += reg.liquidoTotal;
-            alunosAcum += reg.totalAlunos;
-            descontoGlobalAcum += reg.descontoGlobalValor;
-
-            reg.rotas.forEach((rota) => {
-                descontoIndividualAcum += rota.descontoIndividualTotal;
-            });
-        });
-    });
-
-    const mediaMensalidade =
-        alunosAcum > 0 ? liquidoAcum / alunosAcum : 0;
-
-    return `
-        <div class="indicadores-grid">
-
-            <div class="indicador-card">
-                <div class="indicador-label">Bruto acumulado</div>
-                <div class="indicador-value">${formatarMoeda(brutoAcum)}</div>
-                <div class="indicador-footer">Soma de todos os meses</div>
-            </div>
-
-            <div class="indicador-card">
-                <div class="indicador-label">Líquido acumulado</div>
-                <div class="indicador-value">${formatarMoeda(liquidoAcum)}</div>
-                <div class="indicador-footer">Após auxílios e descontos</div>
-            </div>
-
-            <div class="indicador-card">
-                <div class="indicador-label">Total de alunos transportados</div>
-                <div class="indicador-value">${alunosAcum}</div>
-                <div class="indicador-footer">Somatório geral</div>
-            </div>
-
-            <div class="indicador-card">
-                <div class="indicador-label">Mensalidade média geral</div>
-                <div class="indicador-value">${formatarMoeda(mediaMensalidade)}</div>
-                <div class="indicador-footer">Baseada no líquido acumulado</div>
-            </div>
-
-            <div class="indicador-card">
-                <div class="indicador-label">Descontos individuais acumulados</div>
-                <div class="indicador-value">${formatarMoeda(descontoIndividualAcum)}</div>
-                <div class="indicador-footer">Impacto total dos descontos por aluno</div>
-            </div>
-
-            <div class="indicador-card">
-                <div class="indicador-label">Descontos globais acumulados</div>
-                <div class="indicador-value">${formatarMoeda(descontoGlobalAcum)}</div>
-                <div class="indicador-footer">Impacto total dos descontos gerais</div>
-            </div>
-
+        <div class="dash-card">
+          <div class="dash-label">Líquido anual</div>
+          <div class="dash-value">${formatarMoeda(totalLiquidoAno)}</div>
+          <div class="dash-footer">Após auxílio e descontos.</div>
         </div>
-    `;
+
+        <div class="dash-card">
+          <div class="dash-label">Operacional anual</div>
+          <div class="dash-value">${formatarMoeda(totalOperacionalAno)}</div>
+          <div class="dash-footer">Custos totais do ano.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Auxílio total</div>
+          <div class="dash-value">${formatarMoeda(totalAuxilioAno)}</div>
+          <div class="dash-footer">Soma do auxílio aplicado.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Desconto global médio</div>
+          <div class="dash-value">${(totalDescGlobalAno / meses.length).toFixed(2)}%</div>
+          <div class="dash-footer">Média anual.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Custo médio por aluno (ano)</div>
+          <div class="dash-value">${formatarMoeda(custoMedioAno)}</div>
+          <div class="dash-footer">Líquido anual ÷ alunos.</div>
+        </div>
+      </div>
+
+      <h4 style="margin-top:20px;">Comparação SL × CV</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Participação SL no bruto</div>
+          <div class="dash-value">${calcularPercentual(calcTotal("sl_bruto"), calcTotal("sl_bruto") + calcTotal("cv_bruto"))}%</div>
+          <div class="dash-footer">Baseado no histórico.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Participação CV no bruto</div>
+          <div class="dash-value">${calcularPercentual(calcTotal("cv_bruto"), calcTotal("sl_bruto") + calcTotal("cv_bruto"))}%</div>
+          <div class="dash-footer">Baseado no histórico.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Participação SL no líquido</div>
+          <div class="dash-value">${calcularPercentual(calcTotal("sl_liquido"), calcTotal("sl_liquido") + calcTotal("cv_liquido"))}%</div>
+          <div class="dash-footer">Após descontos.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Participação CV no líquido</div>
+          <div class="dash-value">${calcularPercentual(calcTotal("cv_liquido"), calcTotal("sl_liquido") + calcTotal("cv_liquido"))}%</div>
+          <div class="dash-footer">Após descontos.</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Função auxiliar para somar valores do histórico
+function calcTotal(campo) {
+  let total = 0;
+  for (const mes of Object.keys(state.historico)) {
+    const h = state.historico[mes];
+    if (h[campo] !== undefined) total += h[campo];
+  }
+  return total;
+}
+
+// Percentual seguro
+function calcularPercentual(valor, total) {
+  if (total === 0) return 0;
+  return ((valor / total) * 100).toFixed(1);
+}
+
+// Adiciona botão no menu
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
+
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("historico", "Histórico", "📅")}
+    ${botaoNav("relatorios", "Relatórios", "📘")}
+    ${botaoNav("pdf", "PDF", "📄", true)}
+    ${botaoNav("config", "Configurações", "⚙️", true)}
+  `;
+
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+// Render com nova página
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "historico":
+      conteudo = paginaHistorico();
+      break;
+    case "relatorios":
+      conteudo = paginaRelatoriosAvancados();
+      break;
+    case "pdf":
+      conteudo = paginaPlaceholder("PDF", "O gerador de PDF virá nas próximas partes.");
+      break;
+    case "config":
+      conteudo = paginaPlaceholder("Configurações", "Configurações avançadas virão depois.");
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
 }
 // ======================================================================
-// PARTE 5 — GERADOR DE PDF MONSTRUOSO (3 PÁGINAS COMPLETAS)
-// ======================================================================
-//
-// Este módulo cria um PDF profissional com:
-// - Cabeçalho e rodapé
-// - 3 páginas completas
-// - Tabelas avançadas
-// - Explicações matemáticas
-// - Custo por aluno (diária, mensal, rota, veículo)
-// - Análises estatísticas
-// - Gráficos embutidos (base64 placeholders)
-// - Estrutura premium
-//
+// ASSEUF - APP.JS PARTE 9/12
+// Gerador de PDF profissional com capa, tabelas e gráficos
 // ======================================================================
 
-
-// ----------------------------------------------------------------------
-// PÁGINA DE PDF (UI)
-// ----------------------------------------------------------------------
-
+// Página de PDF
 function paginaPDF() {
-    if (!state.ultimoResultado) {
-        return `
-            <div class="card">
-                <h2 class="section-title">PDF Detalhado</h2>
-                <p class="section-subtitle">
-                    Gere um cálculo primeiro para habilitar o PDF.
-                </p>
-                <div class="divider"></div>
-                <p>Nenhum cálculo encontrado.</p>
-            </div>
-        `;
-    }
+  return `
+    <div class="card">
+      ${UI.titulo("Gerador de PDF — Parte 9", "Exportação profissional de relatórios")}
 
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+        Gere um PDF completo com capa, resumo mensal, resumo anual, gráficos e dados detalhados.
+      </p>
+
+      <div class="actions-row">
+        <button class="btn-primary" onclick="gerarPDFParte9()">
+          <span>📄</span>
+          <span>Gerar PDF Completo</span>
+        </button>
+      </div>
+
+      <div style="margin-top:20px;">
+        <h4>Prévia do conteúdo</h4>
+        <p style="font-size:13px; color:var(--text-muted);">
+          O PDF incluirá:
+          <br>• Capa com título e data
+          <br>• Último cálculo completo
+          <br>• Resumo mensal
+          <br>• Resumo anual
+          <br>• Comparação SL × CV
+          <br>• Gráficos do dashboard
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// Atualiza o menu para incluir PDF
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
+
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("historico", "Histórico", "📅")}
+    ${botaoNav("relatorios", "Relatórios", "📘")}
+    ${botaoNav("pdf", "PDF", "📄")}
+    ${botaoNav("config", "Configurações", "⚙️", true)}
+  `;
+
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+// Render com página PDF
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "historico":
+      conteudo = paginaHistorico();
+      break;
+    case "relatorios":
+      conteudo = paginaRelatoriosAvancados();
+      break;
+    case "pdf":
+      conteudo = paginaPDF();
+      break;
+    case "config":
+      conteudo = paginaPlaceholder("Configurações", "Configurações avançadas virão depois.");
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
+}
+
+// Função principal de geração de PDF
+async function gerarPDFParte9() {
+  if (!state.ultimoCalculo) {
+    alert("Faça um cálculo antes de gerar o PDF.");
+    return;
+  }
+
+  const calc = state.ultimoCalculo;
+
+  const pdf = new jspdf.jsPDF({
+    orientation: "portrait",
+    unit: "pt",
+    format: "a4",
+  });
+
+  // -----------------------------
+  // CAPA
+  // -----------------------------
+  pdf.setFontSize(26);
+  pdf.text("ASSEUF — Relatório Completo", 40, 80);
+
+  pdf.setFontSize(14);
+  pdf.text("Sistema Avançado de Gestão de Rotas e Alunos", 40, 110);
+
+  const dataAtual = new Date().toLocaleDateString("pt-BR");
+  pdf.text(`Data: ${dataAtual}`, 40, 150);
+
+  pdf.setFontSize(12);
+  pdf.text("Relatório gerado automaticamente pelo sistema ASSEUF.", 40, 180);
+
+  pdf.addPage();
+
+  // -----------------------------
+  // ÚLTIMO CÁLCULO
+  // -----------------------------
+  pdf.setFontSize(20);
+  pdf.text("Último Cálculo", 40, 60);
+
+  pdf.setFontSize(12);
+  pdf.text(`Bruto total: ${formatarMoeda(calc.brutoTotal)}`, 40, 100);
+  pdf.text(`Líquido total: ${formatarMoeda(calc.liquidoTotal)}`, 40, 120);
+  pdf.text(`Operacional total: ${formatarMoeda(calc.operacionalTotal)}`, 40, 140);
+  pdf.text(`Auxílio aplicado: ${formatarMoeda(calc.aux_total)}`, 40, 160);
+  pdf.text(`Desconto global: ${calc.desc_global}%`, 40, 180);
+  pdf.text(`Líquido final: ${formatarMoeda(calc.liquidoFinal)}`, 40, 200);
+  pdf.text(`Custo final por aluno: ${formatarMoeda(calc.custoFinalAluno)}`, 40, 220);
+
+  pdf.addPage();
+
+  // -----------------------------
+  // RESUMO MENSAL
+  // -----------------------------
+  pdf.setFontSize(20);
+  pdf.text("Resumo Mensal", 40, 60);
+
+  let y = 100;
+
+  for (const mes of Object.keys(state.historico).sort()) {
+    const h = state.historico[mes];
+
+    pdf.setFontSize(14);
+    pdf.text(`${mes}`, 40, y);
+
+    pdf.setFontSize(11);
+    pdf.text(`Bruto: ${formatarMoeda(h.bruto)}`, 60, y + 20);
+    pdf.text(`Líquido final: ${formatarMoeda(h.liquidoFinal)}`, 60, y + 40);
+    pdf.text(`Operacional: ${formatarMoeda(h.operacional)}`, 60, y + 60);
+    pdf.text(`Alunos: ${h.alunos}`, 60, y + 80);
+
+    y += 120;
+
+    if (y > 700) {
+      pdf.addPage();
+      y = 60;
+    }
+  }
+
+  pdf.addPage();
+
+  // -----------------------------
+  // RESUMO ANUAL
+  // -----------------------------
+  pdf.setFontSize(20);
+  pdf.text("Resumo Anual", 40, 60);
+
+  const totalBrutoAno = calcTotal("bruto");
+  const totalLiquidoAno = calcTotal("liquidoFinal");
+  const totalOperacionalAno = calcTotal("operacional");
+  const totalAlunosAno = calcTotal("alunos");
+
+  pdf.setFontSize(12);
+  pdf.text(`Bruto anual: ${formatarMoeda(totalBrutoAno)}`, 40, 100);
+  pdf.text(`Líquido anual: ${formatarMoeda(totalLiquidoAno)}`, 40, 120);
+  pdf.text(`Operacional anual: ${formatarMoeda(totalOperacionalAno)}`, 40, 140);
+  pdf.text(`Alunos no ano: ${totalAlunosAno}`, 40, 160);
+
+  pdf.addPage();
+
+  // -----------------------------
+  // GRÁFICOS (captura do dashboard)
+  // -----------------------------
+  pdf.setFontSize(20);
+  pdf.text("Gráficos", 40, 60);
+
+  // Renderiza dashboard temporariamente
+  state.paginaAtual = "dashboard";
+  render();
+
+  await new Promise((r) => setTimeout(r, 300));
+
+  const dashboard = document.querySelector(".card");
+  const canvasImg = await html2canvas(dashboard).then((c) => c.toDataURL("image/png"));
+
+  pdf.addImage(canvasImg, "PNG", 20, 100, 560, 700);
+
+  // -----------------------------
+  // SALVAR PDF
+  // -----------------------------
+  pdf.save(`ASSEUF-Relatorio-${dataAtual}.pdf`);
+
+  // Volta para a página PDF
+  state.paginaAtual = "pdf";
+  render();
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 10/12
+// Configurações avançadas: tema, preferências, backup e reset
+// ======================================================================
+
+// -----------------------------
+// ESTADO DE CONFIGURAÇÕES
+// -----------------------------
+if (!state.config) {
+  state.config = {
+    tema: "dark", // dark | light
+    salvarHistorico: true,
+    salvarPreferencias: true,
+  };
+}
+
+// -----------------------------
+// APLICAÇÃO DO TEMA
+// -----------------------------
+function aplicarTema() {
+  const tema = state.config.tema;
+
+  if (tema === "light") {
+    document.documentElement.style.setProperty("--bg-main", "#f5f5f5");
+    document.documentElement.style.setProperty("--bg-card", "#ffffff");
+    document.documentElement.style.setProperty("--bg-card-soft", "#f0f0f0");
+    document.documentElement.style.setProperty("--text-main", "#111");
+    document.documentElement.style.setProperty("--text-muted", "#555");
+    document.documentElement.style.setProperty("--border-soft", "#ccc");
+  } else {
+    document.documentElement.style.setProperty("--bg-main", "#050509");
+    document.documentElement.style.setProperty("--bg-card", "#111119");
+    document.documentElement.style.setProperty("--bg-card-soft", "#151521");
+    document.documentElement.style.setProperty("--text-main", "#f5f5f7");
+    document.documentElement.style.setProperty("--text-muted", "#9ea0b8");
+    document.documentElement.style.setProperty("--border-soft", "#26263a");
+  }
+}
+
+// -----------------------------
+// SALVAR CONFIGURAÇÕES
+// -----------------------------
+function salvarConfigLocal() {
+  if (!state.config.salvarPreferencias) return;
+  localStorage.setItem("ASSEUF_CONFIG", JSON.stringify(state.config));
+}
+
+// -----------------------------
+// CARREGAR CONFIGURAÇÕES
+// -----------------------------
+function carregarConfigLocal() {
+  const dados = localStorage.getItem("ASSEUF_CONFIG");
+  if (dados) {
+    try {
+      state.config = JSON.parse(dados);
+    } catch {}
+  }
+  aplicarTema();
+}
+
+carregarConfigLocal();
+
+// -----------------------------
+// BACKUP DO SISTEMA
+// -----------------------------
+function gerarBackup() {
+  const backup = {
+    historico: state.historico,
+    config: state.config,
+  };
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {
+    type: "application/json",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ASSEUF_BACKUP.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// -----------------------------
+// RESTAURAR BACKUP
+// -----------------------------
+function restaurarBackup(arquivo) {
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const dados = JSON.parse(reader.result);
+
+      if (dados.historico) state.historico = dados.historico;
+      if (dados.config) state.config = dados.config;
+
+      aplicarTema();
+      salvarConfigLocal();
+      render();
+
+      alert("Backup restaurado com sucesso!");
+    } catch {
+      alert("Arquivo inválido.");
+    }
+  };
+
+  reader.readAsText(arquivo);
+}
+
+// -----------------------------
+// RESET TOTAL
+// -----------------------------
+function resetarSistema() {
+  if (!confirm("Tem certeza que deseja resetar TODO o sistema?")) return;
+
+  state.historico = {};
+  state.ultimoCalculo = null;
+  state.config = {
+    tema: "dark",
+    salvarHistorico: true,
+    salvarPreferencias: true,
+  };
+
+  localStorage.removeItem("ASSEUF_CONFIG");
+
+  aplicarTema();
+  render();
+
+  alert("Sistema resetado com sucesso!");
+}
+
+// -----------------------------
+// PÁGINA DE CONFIGURAÇÕES
+// -----------------------------
+function paginaConfig() {
+  return `
+    <div class="card">
+      ${UI.titulo("Configurações — Parte 10", "Tema, preferências, backup e reset")}
+
+      <h4>Tema</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card" onclick="alterarTema('dark')" style="cursor:pointer;">
+          <div class="dash-label">Tema escuro</div>
+          <div class="dash-value">🌙</div>
+          <div class="dash-footer">${state.config.tema === "dark" ? "Ativo" : "Clique para ativar"}</div>
+        </div>
+
+        <div class="dash-card" onclick="alterarTema('light')" style="cursor:pointer;">
+          <div class="dash-label">Tema claro</div>
+          <div class="dash-value">☀️</div>
+          <div class="dash-footer">${state.config.tema === "light" ? "Ativo" : "Clique para ativar"}</div>
+        </div>
+      </div>
+
+      <h4 style="margin-top:20px;">Preferências</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Salvar histórico automaticamente</div>
+          <input type="checkbox" id="cfg_hist" ${state.config.salvarHistorico ? "checked" : ""} onchange="toggleSalvarHistorico()" />
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Salvar preferências</div>
+          <input type="checkbox" id="cfg_pref" ${state.config.salvarPreferencias ? "checked" : ""} onchange="toggleSalvarPreferencias()" />
+        </div>
+      </div>
+
+      <h4 style="margin-top:20px;">Backup</h4>
+      <div class="actions-row">
+        <button class="btn-primary" onclick="gerarBackup()">
+          <span>💾</span>
+          <span>Gerar backup</span>
+        </button>
+
+        <label class="btn-ghost" style="cursor:pointer;">
+          <span>📂</span>
+          <span>Restaurar backup</span>
+          <input type="file" style="display:none;" onchange="restaurarBackup(this.files[0])">
+        </label>
+      </div>
+
+      <h4 style="margin-top:20px;">Reset</h4>
+      <button class="btn-ghost" style="border-color:#ff5252; color:#ff5252;" onclick="resetarSistema()">
+        <span>🗑️</span>
+        <span>Resetar sistema</span>
+      </button>
+    </div>
+  `;
+}
+
+// -----------------------------
+// FUNÇÕES DE CONFIGURAÇÃO
+// -----------------------------
+function alterarTema(tema) {
+  state.config.tema = tema;
+  aplicarTema();
+  salvarConfigLocal();
+  render();
+}
+
+function toggleSalvarHistorico() {
+  state.config.salvarHistorico = document.getElementById("cfg_hist").checked;
+  salvarConfigLocal();
+}
+
+function toggleSalvarPreferencias() {
+  state.config.salvarPreferencias = document.getElementById("cfg_pref").checked;
+  salvarConfigLocal();
+}
+
+// -----------------------------
+// ATUALIZA MENU PARA INCLUIR CONFIGURAÇÕES
+// -----------------------------
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
+
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("historico", "Histórico", "📅")}
+    ${botaoNav("relatorios", "Relatórios", "📘")}
+    ${botaoNav("pdf", "PDF", "📄")}
+    ${botaoNav("config", "Configurações", "⚙️")}
+  `;
+
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+// -----------------------------
+// RENDER COM NOVA PÁGINA
+// -----------------------------
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "historico":
+      conteudo = paginaHistorico();
+      break;
+    case "relatorios":
+      conteudo = paginaRelatoriosAvancados();
+      break;
+    case "pdf":
+      conteudo = paginaPDF();
+      break;
+    case "config":
+      conteudo = paginaConfig();
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 11/12
+// Sistema de usuários, login, permissões e logs de atividade
+// ======================================================================
+
+// -----------------------------
+// ESTADO DE USUÁRIOS
+// -----------------------------
+if (!state.usuarios) {
+  state.usuarios = [
+    {
+      usuario: "admin",
+      senha: "1234",
+      perfil: "admin",
+    },
+    {
+      usuario: "operador",
+      senha: "1234",
+      perfil: "operador",
+    },
+  ];
+}
+
+if (!state.usuarioLogado) {
+  state.usuarioLogado = null;
+}
+
+if (!state.logs) {
+  state.logs = [];
+}
+
+// -----------------------------
+// LOG DE ATIVIDADE
+// -----------------------------
+function registrarLog(acao) {
+  const data = new Date().toLocaleString("pt-BR");
+  state.logs.push(`[${data}] ${acao}`);
+}
+
+// -----------------------------
+// LOGIN
+// -----------------------------
+function paginaLogin() {
+  return `
+    <div class="card" style="max-width:420px; margin:auto;">
+      ${UI.titulo("Login — Parte 11", "Acesso ao sistema")}
+
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Usuário</div>
+          <input id="login_user" type="text" placeholder="admin ou operador">
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Senha</div>
+          <input id="login_pass" type="password" placeholder="1234">
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" onclick="fazerLogin()">
+          <span>🔐</span>
+          <span>Entrar</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function fazerLogin() {
+  const user = document.getElementById("login_user").value.trim();
+  const pass = document.getElementById("login_pass").value.trim();
+
+  const encontrado = state.usuarios.find(
+    (u) => u.usuario === user && u.senha === pass
+  );
+
+  if (!encontrado) {
+    alert("Usuário ou senha incorretos.");
+    return;
+  }
+
+  state.usuarioLogado = encontrado;
+  registrarLog(`Usuário '${user}' fez login.`);
+
+  state.paginaAtual = "inicio";
+  render();
+}
+
+// -----------------------------
+// LOGOUT
+// -----------------------------
+function fazerLogout() {
+  if (state.usuarioLogado) {
+    registrarLog(`Usuário '${state.usuarioLogado.usuario}' fez logout.`);
+  }
+
+  state.usuarioLogado = null;
+  state.paginaAtual = "login";
+  render();
+}
+
+// -----------------------------
+// PERMISSÕES
+// -----------------------------
+function temPermissao(pagina) {
+  if (!state.usuarioLogado) return false;
+
+  const perfil = state.usuarioLogado.perfil;
+
+  const permissoes = {
+    admin: ["inicio", "calculo", "dashboard", "historico", "relatorios", "pdf", "config", "usuarios"],
+    operador: ["inicio", "calculo", "dashboard", "historico", "relatorios"],
+  };
+
+  return permissoes[perfil].includes(pagina);
+}
+
+// -----------------------------
+// GERENCIAMENTO DE USUÁRIOS (ADMIN)
+// -----------------------------
+function paginaUsuarios() {
+  if (!temPermissao("usuarios")) {
     return `
-        <div class="card">
-            <h2 class="section-title">Gerar PDF Ultra Detalhado</h2>
-            <p class="section-subtitle">
-                Relatório completo com 3 páginas, tabelas, análises e gráficos.
-            </p>
-            <div class="divider"></div>
-
-            <button class="btn-primary" onclick="gerarPDFMonstruoso()">
-                <span>📄</span>
-                <span>Gerar PDF Completo</span>
-            </button>
-        </div>
+      <div class="card">
+        ${UI.titulo("Acesso negado", "Você não tem permissão para ver esta página.")}
+      </div>
     `;
+  }
+
+  let lista = "";
+
+  for (const u of state.usuarios) {
+    lista += `
+      <div class="dash-card">
+        <div class="dash-label">Usuário</div>
+        <div class="dash-value">${u.usuario}</div>
+        <div class="dash-footer">Perfil: ${u.perfil}</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card">
+      ${UI.titulo("Gerenciamento de Usuários — Parte 11", "Somente administradores")}
+
+      <h4>Usuários cadastrados</h4>
+      <div class="dashboard-grid">${lista}</div>
+
+      <h4 style="margin-top:20px;">Adicionar novo usuário</h4>
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <div class="dash-label">Usuário</div>
+          <input id="novo_user" type="text">
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Senha</div>
+          <input id="novo_pass" type="password">
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-label">Perfil</div>
+          <select id="novo_perfil" style="padding:8px; border-radius:8px; background:#222; color:#fff;">
+            <option value="operador">Operador</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn-primary" onclick="adicionarUsuario()">
+          <span>➕</span>
+          <span>Adicionar usuário</span>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
+function adicionarUsuario() {
+  const user = document.getElementById("novo_user").value.trim();
+  const pass = document.getElementById("novo_pass").value.trim();
+  const perfil = document.getElementById("novo_perfil").value;
 
-// ----------------------------------------------------------------------
-// FUNÇÃO PRINCIPAL — GERAR PDF COMPLETO
-// ----------------------------------------------------------------------
+  if (!user || !pass) {
+    alert("Preencha usuário e senha.");
+    return;
+  }
 
-function gerarPDFMonstruoso() {
-    const r = state.ultimoResultado;
-    const { jsPDF } = window.jspdf;
+  if (state.usuarios.find((u) => u.usuario === user)) {
+    alert("Usuário já existe.");
+    return;
+  }
 
-    const doc = new jsPDF({
-        unit: "pt",
-        format: "a4"
-    });
+  state.usuarios.push({ usuario: user, senha: pass, perfil });
+  registrarLog(`Usuário '${user}' criado com perfil '${perfil}'.`);
 
-    let y = 40;
-
-    // ============================================================
-    // CABEÇALHO PADRÃO
-    // ============================================================
-    function cabecalho(pagina) {
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(16);
-        doc.text("ASSEUF — Relatório Técnico e Financeiro", 40, 40);
-
-        doc.setFont("Helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(`Página ${pagina}`, 500, 40);
-    }
-
-    // ============================================================
-    // RODAPÉ PADRÃO
-    // ============================================================
-    function rodape() {
-        doc.setFont("Helvetica", "italic");
-        doc.setFontSize(10);
-        doc.text("Relatório gerado automaticamente pelo Sistema ASSEUF — Versão Premium", 40, 800);
-    }
-
-    // ============================================================
-    // PÁGINA 1 — RESUMO GERAL
-    // ============================================================
-
-    cabecalho(1);
-
-    y = 80;
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("1. Resumo Geral do Cálculo", 40, y);
-    y += 25;
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-
-    doc.text(`Mês de referência: ${r.mes}`, 40, y); y += 16;
-    doc.text(`Responsável: ${r.responsavel}`, 40, y); y += 16;
-    doc.text(`Descrição: ${r.descricaoCalculo}`, 40, y); y += 16;
-    doc.text(`Observações gerais: ${r.observacoesGerais || "Nenhuma"}`, 40, y); y += 25;
-
-    // Tabela de resumo geral
-    const tabelaResumo = [
-        ["Indicador", "Valor"],
-        ["Bruto Total", formatarMoeda(r.brutoTotal)],
-        ["Líquido Total", formatarMoeda(r.liquidoTotal)],
-        ["Total de Alunos", r.totalAlunos],
-        ["Mensalidade Média Geral", formatarMoeda(r.mensalidadeMediaGeral)],
-        ["Auxílio Total", formatarMoeda(r.auxilioTotal)],
-        ["Desconto Global (%)", r.descontoGlobalPercentual + "%"],
-        ["Desconto Global (Valor)", formatarMoeda(r.descontoGlobalValor)]
-    ];
-
-    y = desenharTabelaPDF(doc, tabelaResumo, 40, y);
-
-    rodape();
-
-    // ============================================================
-    // PÁGINA 2 — DETALHAMENTO POR ROTA
-    // ============================================================
-
-    doc.addPage();
-    cabecalho(2);
-    y = 80;
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("2. Detalhamento por Rota", 40, y);
-    y += 25;
-
-    r.rotas.forEach((rota) => {
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text(`Rota: ${rota.nome}`, 40, y);
-        y += 20;
-
-        const tabelaRota = [
-            ["Indicador", "Valor"],
-            ["Diárias", rota.diarias],
-            ["Valor da Passagem", formatarMoeda(rota.valorPassagem)],
-            ["Veículos", rota.numeroVeiculos],
-            ["Custo Fixo Mensal", formatarMoeda(rota.custoFixoMensal)],
-            ["Alunos (sem desconto)", rota.alunosSemDesconto],
-            ["Alunos (com desconto)", rota.alunosComDesconto],
-            ["Total de Alunos", rota.alunosTotal],
-            ["Mensalidade Base", formatarMoeda(rota.mensalidadeBase)],
-            ["Desconto Individual Total", formatarMoeda(rota.descontoIndividualTotal)],
-            ["Auxílio Aplicado", formatarMoeda(rota.auxilioAplicado)],
-            ["Bruto", formatarMoeda(rota.bruto)],
-            ["Líquido Final", formatarMoeda(rota.liquidoFinal)],
-            ["Custo por Aluno", formatarMoeda(rota.custoPorAluno)],
-            ["Custo por Diária", formatarMoeda(rota.custoPorDiaria)],
-            ["Custo por Veículo", formatarMoeda(rota.custoPorVeiculo)]
-        ];
-
-        y = desenharTabelaPDF(doc, tabelaRota, 40, y);
-        y += 20;
-
-        if (y > 700) {
-            doc.addPage();
-            cabecalho("2 — continuação");
-            y = 80;
-        }
-    });
-
-    rodape();
-
-    // ============================================================
-    // PÁGINA 3 — ANÁLISES MATEMÁTICAS + CUSTO POR ALUNO
-    // ============================================================
-
-    doc.addPage();
-    cabecalho(3);
-    y = 80;
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("3. Análises Matemáticas e Financeiras", 40, y);
-    y += 25;
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-
-    const totalDescontosIndividuais = r.rotas.reduce(
-        (acc, rr) => acc + rr.descontoIndividualTotal,
-        0
-    );
-
-    doc.text(`Impacto total dos descontos individuais: ${formatarMoeda(totalDescontosIndividuais)}`, 40, y); y += 16;
-    doc.text(`Impacto total do desconto global: ${formatarMoeda(r.descontoGlobalValor)}`, 40, y); y += 16;
-    doc.text(`Impacto total do auxílio: ${formatarMoeda(r.auxilioTotal)}`, 40, y); y += 25;
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("3.1 Fórmulas Utilizadas", 40, y);
-    y += 20;
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-
-    const formulas = [
-        "Bruto = Diárias × Valor da Passagem",
-        "Mensalidade Base = Bruto ÷ Total de Alunos",
-        "Desconto Individual = Mensalidade Base × Alunos com desconto × (Percentual ÷ 100)",
-        "Auxílio SL = Auxílio Total × 0.70",
-        "Auxílio CV = Auxílio Total × 0.30",
-        "Líquido Antes do Global = Bruto − Auxílio − Desconto Individual − Custo Fixo",
-        "Desconto Global = Bruto Total × (Percentual ÷ 100)",
-        "Líquido Final = Soma dos Líquidos − Desconto Global",
-        "Custo por Aluno = Líquido Final ÷ Total de Alunos",
-        "Custo por Diária = Líquido Final ÷ Diárias",
-        "Custo por Veículo = Líquido Final ÷ Veículos"
-    ];
-
-    formulas.forEach((f) => {
-        doc.text("• " + f, 40, y);
-        y += 16;
-    });
-
-    y += 20;
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("3.2 Custo por Aluno (Detalhado)", 40, y);
-    y += 20;
-
-    r.rotas.forEach((rota) => {
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text(`Rota: ${rota.nome}`, 40, y);
-        y += 16;
-
-        doc.setFont("Helvetica", "normal");
-        doc.setFontSize(12);
-
-        const custoAluno = rota.custoPorAluno;
-        const custoDiaria = rota.custoPorDiaria;
-        const custoVeiculo = rota.custoPorVeiculo;
-
-        doc.text(`• Custo por aluno: ${formatarMoeda(custoAluno)}`, 40, y); y += 14;
-        doc.text(`• Custo por diária: ${formatarMoeda(custoDiaria)}`, 40, y); y += 14;
-        doc.text(`• Custo por veículo: ${formatarMoeda(custoVeiculo)}`, 40, y); y += 20;
-
-        if (y > 700) {
-            doc.addPage();
-            cabecalho("3 — continuação");
-            y = 80;
-        }
-    });
-
-    rodape();
-
-    // ============================================================
-    // SALVAR PDF
-    // ============================================================
-
-    doc.save(`relatorio_asseuf_${r.mes}.pdf`);
+  render();
 }
 
-
-// ----------------------------------------------------------------------
-// FUNÇÃO AUXILIAR — DESENHAR TABELA
-// ----------------------------------------------------------------------
-
-function desenharTabelaPDF(doc, tabela, x, y) {
-    const col1 = x;
-    const col2 = x + 260;
-
-    tabela.forEach((linha, i) => {
-        doc.setFont("Helvetica", i === 0 ? "bold" : "normal");
-        doc.setFontSize(12);
-
-        doc.text(linha[0], col1, y);
-        doc.text(String(linha[1]), col2, y);
-
-        y += 18;
-    });
-
-    return y;
-}
-// ======================================================================
-// PARTE 6 — GRÁFICOS AVANÇADOS + DASHBOARD VISUAL + CHART.JS PREMIUM
-// ======================================================================
-//
-// Este módulo adiciona:
-// - Gráficos avançados com Chart.js
-// - Dashboard visual completo
-// - Gráficos comparativos SL × CV
-// - Gráficos de evolução mensal
-// - Gráficos de impacto do auxílio e descontos
-// - Gráficos de custo por aluno, rota, diária e veículo
-// - Gráficos prontos para exportar para PDF (base64)
-// - Painel visual premium
-//
-// ======================================================================
-
-
-// ----------------------------------------------------------------------
-// PÁGINA DE GRÁFICOS AVANÇADOS
-// ----------------------------------------------------------------------
-
-function paginaGraficos() {
-    const meses = Object.keys(state.historico).sort();
-
+// -----------------------------
+// LOGS DO SISTEMA
+// -----------------------------
+function paginaLogs() {
+  if (!temPermissao("usuarios")) {
     return `
-        <style>
-            .grafico-card {
-                background: #181818;
-                border-radius: 16px;
-                padding: 22px 24px;
-                border: 1px solid #2a2a2a;
-                box-shadow: 0 0 18px rgba(0,0,0,0.6);
-                margin-bottom: 26px;
-            }
-
-            .grafico-title {
-                font-size: 18px;
-                font-weight: 600;
-                margin-bottom: 10px;
-            }
-
-            .grafico-subtitle {
-                font-size: 12px;
-                opacity: 0.7;
-                margin-bottom: 16px;
-            }
-
-            canvas {
-                width: 100% !important;
-                max-height: 360px;
-            }
-        </style>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Evolução do Bruto Mensal</div>
-            <div class="grafico-subtitle">Comparação do bruto total ao longo dos meses</div>
-            <canvas id="graficoBrutoMensal"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Evolução do Líquido Mensal</div>
-            <div class="grafico-subtitle">Impacto de auxílios e descontos ao longo do tempo</div>
-            <canvas id="graficoLiquidoMensal"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Comparação SL × CV — Bruto</div>
-            <div class="grafico-subtitle">Comparação direta entre as rotas</div>
-            <canvas id="graficoComparativoBruto"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Comparação SL × CV — Líquido</div>
-            <div class="grafico-subtitle">Após auxílios, descontos e custos fixos</div>
-            <canvas id="graficoComparativoLiquido"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Custo por Aluno — SL × CV</div>
-            <div class="grafico-subtitle">Quanto cada aluno realmente custa em cada rota</div>
-            <canvas id="graficoCustoAluno"></canvas>
-        </div>
-
-        <div class="grafico-card">
-            <div class="grafico-title">Distribuição Percentual dos Custos</div>
-            <div class="grafico-subtitle">Auxílio × Descontos × Custo Fixo × Líquido</div>
-            <canvas id="graficoDistribuicao"></canvas>
-        </div>
-
-        <script>
-            setTimeout(() => carregarGraficosAvancados(), 200);
-        </script>
+      <div class="card">
+        ${UI.titulo("Acesso negado", "Somente administradores podem ver os logs.")}
+      </div>
     `;
+  }
+
+  let linhas = state.logs
+    .map((l) => `<div class="dash-card"><div class="dash-label">${l}</div></div>`)
+    .join("");
+
+  return `
+    <div class="card">
+      ${UI.titulo("Logs do Sistema — Parte 11", "Registro de atividades")}
+
+      <div class="dashboard-grid">
+        ${linhas}
+      </div>
+    </div>
+  `;
 }
 
+// -----------------------------
+// ATUALIZA MENU PARA INCLUIR USUÁRIOS E LOGOUT
+// -----------------------------
+function atualizarNav() {
+  const navRoot = document.getElementById("nav-root");
+  if (!navRoot) return;
 
-// ----------------------------------------------------------------------
-// FUNÇÃO PRINCIPAL — CARREGAR TODOS OS GRÁFICOS
-// ----------------------------------------------------------------------
+  if (!state.usuarioLogado) {
+    navRoot.innerHTML = `
+      <button class="nav-btn active" data-page="login">
+        <span class="icon">🔐</span>
+        <span>Login</span>
+      </button>
+    `;
+    return;
+  }
 
-function carregarGraficosAvancados() {
-    const meses = Object.keys(state.historico).sort();
+  navRoot.innerHTML = `
+    ${botaoNav("inicio", "Início", "🏠")}
+    ${botaoNav("calculo", "Cadastro & Cálculo", "🧮")}
+    ${botaoNav("dashboard", "Dashboard Visual", "📊")}
+    ${botaoNav("historico", "Histórico", "📅")}
+    ${botaoNav("relatorios", "Relatórios", "📘")}
+    ${botaoNav("pdf", "PDF", "📄")}
+    ${state.usuarioLogado.perfil === "admin" ? botaoNav("usuarios", "Usuários", "👥") : ""}
+    ${state.usuarioLogado.perfil === "admin" ? botaoNav("logs", "Logs", "📜") : ""}
+    <button class="nav-btn secondary" onclick="fazerLogout()">
+      <span class="icon">🚪</span>
+      <span>Sair</span>
+    </button>
+  `;
 
-    const brutoMensal = [];
-    const liquidoMensal = [];
-    const slBruto = [];
-    const cvBruto = [];
-    const slLiquido = [];
-    const cvLiquido = [];
-    const custoAlunoSL = [];
-    const custoAlunoCV = [];
-    const distribuicaoAux = [];
-    const distribuicaoDescInd = [];
-    const distribuicaoDescGlobal = [];
-    const distribuicaoLiquido = [];
-
-    meses.forEach((mes) => {
-        const bloco = state.historico[mes];
-
-        let brutoMes = 0;
-        let liquidoMes = 0;
-        let auxMes = 0;
-        let descIndMes = 0;
-        let descGlobalMes = 0;
-
-        let slBrutoMes = 0;
-        let cvBrutoMes = 0;
-        let slLiquidoMes = 0;
-        let cvLiquidoMes = 0;
-        let slCustoAluno = 0;
-        let cvCustoAluno = 0;
-
-        bloco.registros.forEach((reg) => {
-            brutoMes += reg.brutoTotal;
-            liquidoMes += reg.liquidoTotal;
-            auxMes += reg.auxilioTotal;
-            descGlobalMes += reg.descontoGlobalValor;
-
-            reg.rotas.forEach((rota) => {
-                descIndMes += rota.descontoIndividualTotal;
-
-                if (rota.nome === "Sete Lagoas") {
-                    slBrutoMes += rota.bruto;
-                    slLiquidoMes += rota.liquidoFinal;
-                    slCustoAluno = rota.custoPorAluno;
-                }
-
-                if (rota.nome === "Curvelo") {
-                    cvBrutoMes += rota.bruto;
-                    cvLiquidoMes += rota.liquidoFinal;
-                    cvCustoAluno = rota.custoPorAluno;
-                }
-            });
-        });
-
-        brutoMensal.push(brutoMes);
-        liquidoMensal.push(liquidoMes);
-        slBruto.push(slBrutoMes);
-        cvBruto.push(cvBrutoMes);
-        slLiquido.push(slLiquidoMes);
-        cvLiquido.push(cvLiquidoMes);
-        custoAlunoSL.push(slCustoAluno);
-        custoAlunoCV.push(cvCustoAluno);
-
-        distribuicaoAux.push(auxMes);
-        distribuicaoDescInd.push(descIndMes);
-        distribuicaoDescGlobal.push(descGlobalMes);
-        distribuicaoLiquido.push(liquidoMes);
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 1 — BRUTO MENSAL
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoBrutoMensal"), {
-        type: "line",
-        data: {
-            labels: meses,
-            datasets: [{
-                label: "Bruto Total",
-                data: brutoMensal,
-                borderColor: "#4CAF50",
-                backgroundColor: "rgba(76,175,80,0.2)",
-                tension: 0.3
-            }]
-        }
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 2 — LÍQUIDO MENSAL
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoLiquidoMensal"), {
-        type: "line",
-        data: {
-            labels: meses,
-            datasets: [{
-                label: "Líquido Total",
-                data: liquidoMensal,
-                borderColor: "#2196F3",
-                backgroundColor: "rgba(33,150,243,0.2)",
-                tension: 0.3
-            }]
-        }
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 3 — COMPARATIVO BRUTO SL × CV
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoComparativoBruto"), {
-        type: "bar",
-        data: {
-            labels: meses,
-            datasets: [
-                {
-                    label: "Sete Lagoas",
-                    data: slBruto,
-                    backgroundColor: "#4CAF50"
-                },
-                {
-                    label: "Curvelo",
-                    data: cvBruto,
-                    backgroundColor: "#FFC107"
-                }
-            ]
-        }
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 4 — COMPARATIVO LÍQUIDO SL × CV
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoComparativoLiquido"), {
-        type: "bar",
-        data: {
-            labels: meses,
-            datasets: [
-                {
-                    label: "Sete Lagoas",
-                    data: slLiquido,
-                    backgroundColor: "#2196F3"
-                },
-                {
-                    label: "Curvelo",
-                    data: cvLiquido,
-                    backgroundColor: "#FF5722"
-                }
-            ]
-        }
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 5 — CUSTO POR ALUNO SL × CV
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoCustoAluno"), {
-        type: "radar",
-        data: {
-            labels: meses,
-            datasets: [
-                {
-                    label: "SL — Custo por aluno",
-                    data: custoAlunoSL,
-                    borderColor: "#4CAF50",
-                    backgroundColor: "rgba(76,175,80,0.2)"
-                },
-                {
-                    label: "CV — Custo por aluno",
-                    data: custoAlunoCV,
-                    borderColor: "#FFC107",
-                    backgroundColor: "rgba(255,193,7,0.2)"
-                }
-            ]
-        }
-    });
-
-    // --------------------------------------------------------------
-    // GRÁFICO 6 — DISTRIBUIÇÃO PERCENTUAL
-    // --------------------------------------------------------------
-    new Chart(document.getElementById("graficoDistribuicao"), {
-        type: "doughnut",
-        data: {
-            labels: ["Auxílio", "Descontos Individuais", "Desconto Global", "Líquido"],
-            datasets: [{
-                data: [
-                    distribuicaoAux.reduce((a,b)=>a+b,0),
-                    distribuicaoDescInd.reduce((a,b)=>a+b,0),
-                    distribuicaoDescGlobal.reduce((a,b)=>a+b,0),
-                    distribuicaoLiquido.reduce((a,b)=>a+b,0)
-                ],
-                backgroundColor: [
-                    "#4CAF50",
-                    "#FFC107",
-                    "#FF5722",
-                    "#2196F3"
-                ]
-            }]
-        }
-    });
+  [...navRoot.querySelectorAll("[data-page]")].forEach((btn) => {
+    const page = btn.getAttribute("data-page");
+    if (page === state.paginaAtual) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
 }
+
+// -----------------------------
+// RENDER COM LOGIN E PERMISSÕES
+// -----------------------------
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  if (!state.usuarioLogado) {
+    app.innerHTML = paginaLogin();
+    atualizarNav();
+    return;
+  }
+
+  let conteudo = "";
+
+  switch (state.paginaAtual) {
+    case "inicio":
+      conteudo = paginaInicio();
+      break;
+    case "calculo":
+      conteudo = paginaCalculoBasico();
+      break;
+    case "dashboard":
+      conteudo = paginaDashboardVisual();
+      break;
+    case "historico":
+      conteudo = paginaHistorico();
+      break;
+    case "relatorios":
+      conteudo = paginaRelatoriosAvancados();
+      break;
+    case "pdf":
+      conteudo = paginaPDF();
+      break;
+    case "usuarios":
+      conteudo = paginaUsuarios();
+      break;
+    case "logs":
+      conteudo = paginaLogs();
+      break;
+    default:
+      conteudo = `<div class="card"><p>Erro ao carregar página.</p></div>`;
+  }
+
+  app.innerHTML = conteudo;
+
+  if (state.paginaAtual === "dashboard") {
+    setTimeout(gerarGraficosParte6, 50);
+  }
+
+  atualizarNav();
+}
+// ======================================================================
+// ASSEUF - APP.JS PARTE 12/12
+// Notificações, microinterações, otimizações finais e polimento geral
+// ======================================================================
+
+// -----------------------------
+// SISTEMA DE NOTIFICAÇÕES
+// -----------------------------
+if (!state.notificacoes) {
+  state.notificacoes = [];
+}
+
+function notificar(tipo, mensagem) {
+  const id = Date.now();
+  state.notificacoes.push({ id, tipo, mensagem });
+
+  renderNotificacoes();
+
+  setTimeout(() => {
+    state.notificacoes = state.notificacoes.filter((n) => n.id !== id);
+    renderNotificacoes();
+  }, 4000);
+}
+
+function renderNotificacoes() {
+  let container = document.getElementById("toast-root");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-root";
+    container.style.position = "fixed";
+    container.style.right = "16px";
+    container.style.bottom = "16px";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "8px";
+    container.style.zIndex = "9999";
+    document.body.appendChild(container);
+  }
+
+  container.innerHTML = state.notificacoes
+    .map(
+      (n) => `
+      <div class="toast toast-${n.tipo}">
+        <span>${n.mensagem}</span>
+      </div>
+    `
+    )
+    .join("");
+}
+
+// Estilos básicos dos toasts (injeção simples)
+(function injectToastStyles() {
+  const style = document.createElement("style");
+  style.innerHTML = `
+    .toast {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+      transform: translateY(10px);
+      opacity: 0;
+      animation: toast-in 0.25s forwards;
+    }
+    .toast-info { background: #2196f3; }
+    .toast-success { background: #4caf50; }
+    .toast-error { background: #f44336; }
+    .toast-warning { background: #ff9800; }
+
+    @keyframes toast-in {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// -----------------------------
+// MICROINTERAÇÕES SIMPLES
+// -----------------------------
+document.addEventListener("mousedown", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  btn.classList.add("btn-press");
+});
+
+document.addEventListener("mouseup", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  btn.classList.remove("btn-press");
+});
+
+(function injectButtonPressStyle() {
+  const style = document.createElement("style");
+  style.innerHTML = `
+    .btn-press {
+      transform: scale(0.97);
+      filter: brightness(0.9);
+      transition: transform 0.08s, filter 0.08s;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// -----------------------------
+// OTIMIZAÇÃO: SALVAR HISTÓRICO SÓ SE CONFIG PERMITIR
+// -----------------------------
+const _oldSalvarNoHistorico = salvarNoHistorico;
+salvarNoHistorico = function () {
+  if (!state.config || state.config.salvarHistorico) {
+    _oldSalvarNoHistorico();
+    notificar("success", "Cálculo registrado no histórico.");
+  } else {
+    notificar("info", "Histórico desativado nas configurações.");
+  }
+};
+
+// -----------------------------
+// OTIMIZAÇÃO: NOTIFICAÇÕES EM AÇÕES IMPORTANTES
+// -----------------------------
+const _oldGerarBackup = gerarBackup;
+gerarBackup = function () {
+  _oldGerarBackup();
+  notificar("success", "Backup gerado com sucesso.");
+};
+
+const _oldRestaurarBackup = restaurarBackup;
+restaurarBackup = function (arquivo) {
+  _oldRestaurarBackup(arquivo);
+  notificar("info", "Processando arquivo de backup...");
+};
+
+const _oldResetarSistema = resetarSistema;
+resetarSistema = function () {
+  _oldResetarSistema();
+  notificar("warning", "Sistema foi resetado.");
+};
+
+const _oldFazerLogin = fazerLogin;
+fazerLogin = function () {
+  const antes = state.usuarioLogado;
+  _oldFazerLogin();
+  if (!antes && state.usuarioLogado) {
+    notificar("success", `Bem-vindo, ${state.usuarioLogado.usuario}.`);
+  }
+};
+
+const _oldFazerLogout = fazerLogout;
+fazerLogout = function () {
+  _oldFazerLogout();
+  notificar("info", "Sessão encerrada.");
+};
+
+// -----------------------------
+// MODO OFFLINE (CACHE BÁSICO VIA LOCALSTORAGE)
+// -----------------------------
+function salvarEstadoBasico() {
+  try {
+    const snapshot = {
+      historico: state.historico,
+      config: state.config,
+    };
+    localStorage.setItem("ASSEUF_SNAPSHOT", JSON.stringify(snapshot));
+  } catch {}
+}
+
+function carregarEstadoBasico() {
+  const dados = localStorage.getItem("ASSEUF_SNAPSHOT");
+  if (!dados) return;
+  try {
+    const snapshot = JSON.parse(dados);
+    if (snapshot.historico) state.historico = snapshot.historico;
+    if (snapshot.config) state.config = snapshot.config;
+  } catch {}
+}
+
+carregarEstadoBasico();
+
+// Integra com eventos principais
+const _oldCalcularParte5 = calcularParte5;
+calcularParte5 = function () {
+  _oldCalcularParte5();
+  salvarEstadoBasico();
+};
+
+const _oldResetarSistema2 = resetarSistema;
+resetarSistema = function () {
+  _oldResetarSistema2();
+  salvarEstadoBasico();
+};
+
+// -----------------------------
+// TOQUE FINAL: TEXTO DO INÍCIO MAIS RICO
+// -----------------------------
+const _oldPaginaInicio = paginaInicio;
+paginaInicio = function () {
+  const base = _oldPaginaInicio();
+  const usuario = state.usuarioLogado ? state.usuarioLogado.usuario : "visitante";
+
+  return base.replace(
+    "</div>\n\n      <div class=\"divider\"></div>",
+    `</div>
+      <div class="divider"></div>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+        Usuário atual: <strong>${usuario}</strong> • Sistema ASSEUF finalizado (Parte 12/12).
+      </p>`
+  );
+};
+
+// -----------------------------
+// INICIALIZAÇÃO FINAL
+// -----------------------------
+window.addEventListener("DOMContentLoaded", () => {
+  aplicarTema && aplicarTema();
+  atualizarNav();
+  render();
+  notificar("info", "ASSEUF carregado com sucesso.");
+});
