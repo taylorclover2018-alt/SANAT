@@ -72,12 +72,6 @@ function carregarBackup() {
     aplicarTema();
 }
 
-function criarUsuarioAdminPadrao() {
-    if (!state.usuarios.find(u => u.usuario === 'admin')) {
-        state.usuarios.push({ usuario: 'admin', senha: '0000', perfil: 'admin' });
-    }
-}
-
 // ==================== RENDERIZAÇÃO PRINCIPAL ====================
 function render() {
     const root = document.getElementById('root');
@@ -99,7 +93,7 @@ function render() {
                 <div class="menu-grupo">
                     <button class="menu-botao" onclick="mudarPagina('home')">Home</button>
                     <button class="menu-botao" onclick="mudarPagina('rotas')">Rotas</button>
-                    <button class="menu-botao" onclick="mudarPagina('calculo')">Cálculo de Rotas</button>
+                    <button class="menu-botao" onclick="mudarPagina('calculo')">Cálculo</button>
                     <button class="menu-botao" onclick="mudarPagina('historico')">Histórico</button>
                     <button class="menu-botao" onclick="mudarPagina('relatorio')">Relatório</button>
                     <button class="menu-botao" onclick="mudarPagina('backup')">Backup</button>
@@ -111,6 +105,388 @@ function render() {
                 <div class="container" id="main-content"></div>
             </main>
         </div>
+    `;
+    root.innerHTML = html;
+    const main = document.getElementById('main-content');
+    switch (state.paginaAtual) {
+        case 'home': main.innerHTML = paginaHome(); break;
+        case 'rotas': main.innerHTML = paginaRotas(); break;
+        case 'novaRota': main.innerHTML = paginaNovaRota(); break;
+        case 'editarRota': main.innerHTML = paginaEditarRota(); break;
+        case 'calculo': main.innerHTML = paginaCalculo(); break;
+        case 'historico': main.innerHTML = paginaHistorico(); break;
+        case 'relatorio': main.innerHTML = paginaRelatorio(); break;
+        case 'backup': main.innerHTML = paginaBackup(); break;
+        default: main.innerHTML = paginaHome();
+    }
+}
+
+function mudarPagina(pagina, params = {}) {
+    state.paginaAtual = pagina;
+    if (params.rotaId) state.rotaEmEdicao = params.rotaId;
+    render();
+}
+
+// ==================== LOGIN ====================
+function fazerLogin(usuario, senha) {
+    const user = state.usuarios.find(u => u.usuario === usuario && u.senha === senha);
+    if (user) {
+        state.usuarioLogado = user;
+        mudarPagina('home');
+        notificar(`Bem-vindo, ${user.usuario}`, 'success');
+    } else {
+        notificar('Usuário ou senha inválidos', 'error');
+    }
+}
+
+function logout() {
+    state.usuarioLogado = null;
+    mudarPagina('login');
+}
+
+function paginaLogin() {
+    return `
+        <div class="card" style="max-width:320px;margin:60px auto;">
+            <h2>ASSEUF Login</h2>
+            <input type="text" id="login-user" placeholder="Usuário">
+            <input type="password" id="login-pass" placeholder="Senha">
+            <button onclick="fazerLogin(document.getElementById('login-user').value, document.getElementById('login-pass').value)" style="width:100%;">Entrar</button>
+        </div>
+    `;
+}
+
+function paginaHome() {
+    return `<h2>Home</h2><p>Bem-vindo ao sistema ASSEUF.</p>`;
+}
+
+// ==================== ROTAS ====================
+function paginaRotas() {
+    let html = '<h2>Rotas</h2><button onclick="mudarPagina(\'novaRota\')">Nova Rota</button><ul>';
+    state.rotas.forEach(r => {
+        html += `<li>${r.nome} 
+            <button onclick="mudarPagina('editarRota', {rotaId:'${r.id}'})">Editar</button>
+            <button class="botao-perigo" onclick="excluirRota('${r.id}')">Excluir</button>
+        </li>`;
+    });
+    html += '</ul>';
+    return html;
+}
+
+function excluirRota(id) {
+    if (!['admin','taylor'].includes(state.usuarioLogado.perfil)) {
+        return notificar('Permissão negada', 'error');
+    }
+    state.rotas = state.rotas.filter(r => r.id !== id);
+    salvarBackup();
+    render();
+}
+
+function paginaNovaRota() {
+    state.rotaEmEdicao = null;
+    return formularioRota();
+}
+
+function paginaEditarRota() {
+    const rota = state.rotas.find(r => r.id === state.rotaEmEdicao);
+    if (!rota) return '<p>Rota não encontrada</p>';
+    return formularioRota(rota);
+}
+
+function formularioRota(rota = null) {
+    const id = rota ? rota.id : '';
+    const nome = rota ? rota.nome : '';
+    const diasRodados = rota ? rota.diasRodadosArray.join(',') : '';
+    const passagens = rota ? rota.passagens : '';
+    const modoAlunos = (rota && rota._modoAlunos) ? rota._modoAlunos : 'detalhado';
+
+    // Veículos
+    let veiculosHtml = '';
+    if (rota) {
+        rota.veiculos.forEach((v, idx) => {
+            veiculosHtml += `
+                <div class="veiculo-item">
+                    <input type="text" placeholder="Nome" class="veiculo-nome" value="${v.nome}" required>
+                    <input type="number" placeholder="Diária" step="0.01" class="veiculo-diaria" value="${v.valorDiaria}" required>
+                    <input type="number" placeholder="Qtd diárias" step="1" class="veiculo-qtd" value="${v.qtdDiarias}" required>
+                    <input type="number" placeholder="Dias rodados (opcional)" step="1" class="veiculo-dias" value="${v.diasRodados || ''}">
+                    <button type="button" class="botao-perigo" onclick="removerVeiculo(this)">Remover</button>
+                </div>
+            `;
+        });
+    }
+
+    // Alunos (detalhado)
+    let alunosHtml = '';
+    if (rota && modoAlunos === 'detalhado') {
+        rota.alunos.forEach((a, idx) => {
+            const tipo = a.integral ? 'integral' : 'desconto';
+            alunosHtml += `
+                <div class="aluno-item">
+                    <input type="text" placeholder="Nome" class="aluno-nome" value="${a.nome}" required>
+                    <select class="aluno-tipo">
+                        <option value="integral" ${tipo==='integral'?'selected':''}>Integral</option>
+                        <option value="desconto" ${tipo==='desconto'?'selected':''}>Com desconto</option>
+                    </select>
+                    <input type="number" placeholder="Desconto %" step="0.01" class="aluno-desconto" value="${a.desconto || 0}">
+                    <button type="button" class="botao-perigo" onclick="removerAluno(this)">Remover</button>
+                </div>
+            `;
+        });
+    }
+
+    return `
+        <h2>${rota ? 'Editar' : 'Nova'} Rota</h2>
+        <form onsubmit="salvarRota(event)">
+            <input type="hidden" id="rota-id" value="${id}">
+            <div class="card">
+                <label>Nome da rota:</label>
+                <input type="text" id="rota-nome" value="${nome}" required>
+                <label>Dias rodados (ex: 1,2,3,4):</label>
+                <input type="text" id="rota-dias" value="${diasRodados}" required>
+                <label>Passagens (R$):</label>
+                <input type="number" id="rota-passagens" step="0.01" value="${passagens}" required>
+            </div>
+            <h4>Veículos</h4>
+            <div id="veiculos-container">${veiculosHtml}</div>
+            <button type="button" onclick="adicionarVeiculo()">Adicionar Veículo</button>
+
+            <h4>Alunos</h4>
+            <div style="margin-bottom:10px;">
+                <label>Modo:</label>
+                <select id="modo-alunos" onchange="toggleModoAlunos()">
+                    <option value="detalhado" ${modoAlunos==='detalhado'?'selected':''}>Detalhado</option>
+                    <option value="resumido" ${modoAlunos==='resumido'?'selected':''}>Resumido</option>
+                </select>
+            </div>
+            <div id="alunos-container">${alunosHtml}</div>
+            <div id="alunos-resumo-container" style="display:${modoAlunos==='resumido'?'block':'none'};"></div>
+            <div id="alunos-botoes" style="display:${modoAlunos==='detalhado'?'block':'none'};">
+                <button type="button" onclick="adicionarAluno()">Adicionar Aluno</button>
+            </div>
+            <br>
+            <button type="submit" class="botao-principal">Salvar</button>
+            <button type="button" onclick="mudarPagina('rotas')">Cancelar</button>
+        </form>
+    `;
+}
+
+// Funções auxiliares do formulário
+window.adicionarVeiculo = function() {
+    const container = document.getElementById('veiculos-container');
+    const div = document.createElement('div');
+    div.className = 'veiculo-item';
+    div.innerHTML = `
+        <input type="text" placeholder="Nome" class="veiculo-nome" required>
+        <input type="number" placeholder="Diária" step="0.01" class="veiculo-diaria" required>
+        <input type="number" placeholder="Qtd diárias" step="1" class="veiculo-qtd" required>
+        <input type="number" placeholder="Dias rodados (opcional)" step="1" class="veiculo-dias">
+        <button type="button" class="botao-perigo" onclick="removerVeiculo(this)">Remover</button>
+    `;
+    container.appendChild(div);
+};
+
+window.removerVeiculo = function(btn) {
+    btn.closest('.veiculo-item').remove();
+};
+
+window.adicionarAluno = function() {
+    const container = document.getElementById('alunos-container');
+    const div = document.createElement('div');
+    div.className = 'aluno-item';
+    div.innerHTML = `
+        <input type="text" placeholder="Nome" class="aluno-nome" required>
+        <select class="aluno-tipo">
+            <option value="integral">Integral</option>
+            <option value="desconto">Com desconto</option>
+        </select>
+        <input type="number" placeholder="Desconto %" step="0.01" class="aluno-desconto" value="0">
+        <button type="button" class="botao-perigo" onclick="removerAluno(this)">Remover</button>
+    `;
+    container.appendChild(div);
+};
+
+window.removerAluno = function(btn) {
+    btn.closest('.aluno-item').remove();
+};
+
+window.toggleModoAlunos = function() {
+    const select = document.getElementById('modo-alunos');
+    const modo = select.value;
+    const containerDetalhado = document.getElementById('alunos-container');
+    const containerResumo = document.getElementById('alunos-resumo-container');
+    const botoes = document.getElementById('alunos-botoes');
+
+    if (modo === 'detalhado') {
+        containerDetalhado.style.display = 'block';
+        containerResumo.style.display = 'none';
+        botoes.style.display = 'block';
+        if (containerDetalhado.children.length === 0) adicionarAluno();
+    } else {
+        containerDetalhado.style.display = 'none';
+        containerResumo.style.display = 'block';
+        botoes.style.display = 'none';
+        if (containerResumo.children.length === 0) {
+            containerResumo.innerHTML = `
+                <div class="aluno-resumo">
+                    <label>Alunos integrais (quantidade)</label>
+                    <input type="number" id="alunos-integrais" value="0" min="0">
+                    <label>Alunos com desconto (quantidade)</label>
+                    <input type="number" id="alunos-desconto-qtd" value="0" min="0">
+                    <label>Desconto (%)</label>
+                    <input type="number" id="alunos-desconto-valor" value="0" min="0" max="100" step="0.1">
+                </div>
+            `;
+        }
+    }
+};
+
+function salvarRota(e) {
+    e.preventDefault();
+    const id = document.getElementById('rota-id').value;
+    const nome = document.getElementById('rota-nome').value;
+    const diasStr = document.getElementById('rota-dias').value;
+    const passagens = parseFloat(document.getElementById('rota-passagens').value) || 0;
+    const diasRodadosArray = diasStr.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+
+    // Veículos
+    const veiculos = [];
+    document.querySelectorAll('#veiculos-container .veiculo-item').forEach((item, idx) => {
+        const nome = item.querySelector('.veiculo-nome').value;
+        const diaria = parseFloat(item.querySelector('.veiculo-diaria').value);
+        const qtd = parseInt(item.querySelector('.veiculo-qtd').value);
+        const diasRodados = parseInt(item.querySelector('.veiculo-dias').value);
+        if (nome && !isNaN(diaria) && !isNaN(qtd)) {
+            veiculos.push({
+                id: 'v' + Date.now() + idx,
+                nome,
+                valorDiaria: diaria,
+                qtdDiarias: qtd,
+                diasRodados: isNaN(diasRodados) ? null : diasRodados
+            });
+        }
+    });
+
+    // Alunos
+    const modo = document.getElementById('modo-alunos').value;
+    let alunos = [];
+    if (modo === 'detalhado') {
+        document.querySelectorAll('#alunos-container .aluno-item').forEach((item, idx) => {
+            const nome = item.querySelector('.aluno-nome').value;
+            const tipo = item.querySelector('.aluno-tipo').value;
+            const desconto = parseFloat(item.querySelector('.aluno-desconto').value) || 0;
+            if (nome) {
+                alunos.push({
+                    id: 'a' + Date.now() + idx,
+                    nome,
+                    integral: tipo === 'integral',
+                    desconto: tipo === 'integral' ? 0 : desconto
+                });
+            }
+        });
+    } else {
+        const integrais = parseInt(document.getElementById('alunos-integrais').value) || 0;
+        const comDescontoQtd = parseInt(document.getElementById('alunos-desconto-qtd').value) || 0;
+        const descontoValor = parseFloat(document.getElementById('alunos-desconto-valor').value) || 0;
+        for (let i = 0; i < integrais; i++) {
+            alunos.push({ id: 'a'+Date.now()+i+'_int', nome: `Integral ${i+1}`, integral: true, desconto: 0 });
+        }
+        for (let i = 0; i < comDescontoQtd; i++) {
+            alunos.push({ id: 'a'+Date.now()+i+'_desc', nome: `Desconto ${i+1}`, integral: false, desconto: descontoValor });
+        }
+    }
+
+    if (!veiculos.length) return notificar('Adicione veículos', 'error');
+    if (alunos.length === 0) return notificar('Adicione alunos', 'error');
+
+    const rota = {
+        id: id || Date.now().toString(),
+        nome,
+        diasRodadosArray,
+        passagens,
+        veiculos,
+        alunos,
+        _modoAlunos: modo
+    };
+
+    if (id) {
+        const index = state.rotas.findIndex(r => r.id === id);
+        if (index !== -1) state.rotas[index] = rota;
+    } else {
+        state.rotas.push(rota);
+    }
+    salvarBackup();
+    notificar('Rota salva', 'success');
+    mudarPagina('rotas');
+}
+
+// ==================== CÁLCULOS ====================
+function calcularBruto(rota) {
+    let bruto = 0;
+    rota.veiculos.forEach(v => {
+        if (v.diasRodados) bruto += v.valorDiaria * v.qtdDiarias * v.diasRodados;
+        else bruto += v.valorDiaria * v.qtdDiarias;
+    });
+    return bruto;
+}
+
+function calcularDistribuicao30_70(rotas, auxilioTotal) {
+    const diasMaximo = Math.max(...rotas.map(r => Math.max(...r.diasRodadosArray, 0)));
+    if (diasMaximo === 0) return rotas.map(() => 0);
+    const valorPorDia = auxilioTotal / diasMaximo;
+    const auxilioPorRota = rotas.map(() => 0);
+    for (let dia = 1; dia <= diasMaximo; dia++) {
+        const rotasNoDia = rotas.filter(r => r.diasRodadosArray.includes(dia));
+        if (rotasNoDia.length === rotas.length) {
+            const brutos = rotasNoDia.map(r => calcularBruto(r));
+            const total = brutos.reduce((a,b) => a+b, 0);
+            rotasNoDia.forEach((r, idx) => {
+                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * (total ? brutos[idx]/total : 1/rotas.length);
+            });
+        } else if (rotasNoDia.length === 1) {
+            const r = rotasNoDia[0];
+            auxilioPorRota[rotas.indexOf(r)] += valorPorDia * 0.7;
+            rotas.filter(r2 => !r2.diasRodadosArray.includes(dia)).forEach(r2 => {
+                auxilioPorRota[rotas.indexOf(r2)] += valorPorDia * 0.3;
+            });
+        } else {
+            const brutos = rotasNoDia.map(r => calcularBruto(r));
+            const total = brutos.reduce((a,b) => a+b, 0);
+            rotasNoDia.forEach((r, idx) => {
+                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * (total ? brutos[idx]/total : 1/rotasNoDia.length);
+            });
+        }
+    }
+    return auxilioPorRota;
+}
+
+function calcularValoresPorAluno(rota, saldo) {
+    const integrais = rota.alunos.filter(a => a.integral).length;
+    let somaCoef = integrais;
+    rota.alunos.forEach(a => { if (!a.integral) somaCoef += (1 - a.desconto/100); });
+    const valorIntegral = somaCoef ? saldo / somaCoef : 0;
+    return rota.alunos.map(a => ({
+        nome: a.nome,
+        valor: a.integral ? valorIntegral : valorIntegral * (1 - a.desconto/100)
+    }));
+}
+
+function calcularAuxilio(dinheiro, combustivel) {
+    const total = dinheiro + combustivel;
+    const rotas = state.rotas;
+    if (!rotas.length) { notificar('Nenhuma rota', 'error'); return []; }
+    const brutos = rotas.map(r => calcularBruto(r));
+    const auxilios = calcularDistribuicao30_70(rotas, total);
+    const totalBruto = brutos.reduce((a,b) => a+b, 0);
+    const resultados = rotas.map((r, idx) => {
+        const bruto = brutos[idx];
+        const auxilio = auxilios[idx];
+        const aposAuxilio = bruto - auxilio;
+        const aposPassagens = aposAuxilio - r.passagens;
+        const alunos = calcularValoresPorAluno(r, aposPassagens);
+        return {
+            rota: r.nome,
+            bruto,
+            percBruto: totalBruto ? (bruto/totalBruto*100).toF        </div>
     `;
     root.innerHTML = html;
     const main = document.getElementById('main-content');
@@ -490,3 +866,4 @@ function calcularDistribuicao30_70(rotas, auxilioTotal) {
     if (diasMaximo === 0) return rotas.map(() => 0);
     const valorPorDia = auxilioTotal / diasMaximo;
     const auxilioP
+
