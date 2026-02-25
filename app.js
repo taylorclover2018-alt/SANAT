@@ -4202,3 +4202,79 @@ render = function (param1, param2) {
 
     renderOriginalParte22(param1, param2);
 };
+/* ===========================================================
+   SISTEMA DE LOGIN — USUÁRIOS E SENHAS DEFINIDOS POR TAYLOR
+   =========================================================== */
+
+// Usuários e senhas
+const usuarios = {
+    "Admin": {
+        senha: "0000",
+        nivel: "admin"
+    },
+    "Taylor": {
+        senha: "1296",
+        nivel: "taylor"
+    },
+    "Operador": {
+        senha: "4321",
+        nivel: "operador"
+    },
+    "Visitante": {
+        senha: "1234",
+        nivel: "visitante"
+    }
+};
+
+/* ===========================================================
+   TELA DE LOGIN
+   =========================================================== */
+
+function telaLogin() {
+    return `
+        <div class="card" style="max-width:350px; margin:80px auto;">
+            <h2 style="text-align:center; margin-bottom:20px;">ENTERPRISE PRO</h2>
+
+            <label>Usuário:</label>
+            <select id="loginUsuario">
+                <option>Admin</option>
+                <option>Taylor</option>
+                <option>Operador</option>
+                <option>Visitante</option>
+            </select>
+
+            <label>Senha:</label>
+            <input type="password" id="loginSenha">
+
+            <button class="primary" style="width:100%; margin-top:10px;" onclick="validarLogin()">
+                Entrar
+            </button>
+        </div>
+    `;
+}
+
+/* ===========================================================
+   VALIDAÇÃO DO LOGIN
+   =========================================================== */
+
+function validarLogin() {
+    const usuario = document.getElementById("loginUsuario").value;
+    const senha = document.getElementById("loginSenha").value;
+
+    if (!usuarios[usuario]) {
+        alert("Usuário não encontrado.");
+        return;
+    }
+
+    if (usuarios[usuario].senha !== senha) {
+        alert("Senha incorreta.");
+        return;
+    }
+
+    // Salva sessão
+    localStorage.setItem("usuarioLogado", usuario);
+    localStorage.setItem("nivelAcesso", usuarios[usuario].nivel);
+
+    // Carrega o sistema principal
+    carregarDashboard();
+}
