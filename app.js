@@ -1,6 +1,7 @@
 /*  
 ===========================================================
 APP.JS — SUPER ASSEUF ENTERPRISE PRO (COMPLETO)
+PARTE 1/5
 ===========================================================
 */
 
@@ -309,6 +310,12 @@ function paginaHome() {
         </div>
     `;
 }
+/*  
+===========================================================
+APP.JS — SUPER ASSEUF ENTERPRISE PRO
+PARTE 2/5
+===========================================================
+*/
 
 // ---------------------------------------------------------
 // BACKUP (EXPORTAR / IMPORTAR)
@@ -604,6 +611,12 @@ function enviarMensagemChat(destino) {
     auditar("Enviou mensagem", `Para ${destino}`);
     mudarPagina("chatConversa", destino);
 }
+/*  
+===========================================================
+APP.JS — SUPER ASSEUF ENTERPRISE PRO
+PARTE 3/5
+===========================================================
+*/
 
 // ---------------------------------------------------------
 // CHAT EM GRUPO
@@ -891,6 +904,12 @@ function excluirTarefa(id) {
     auditar("Excluiu tarefa", id);
     mudarPagina("tarefas");
 }
+/*  
+===========================================================
+APP.JS — SUPER ASSEUF ENTERPRISE PRO
+PARTE 4/5
+===========================================================
+*/
 
 // ---------------------------------------------------------
 // DRIVE CORPORATIVO
@@ -1210,6 +1229,12 @@ function atualizarBotaoNotificacoesMenu() {
     if (!botao) return;
     botao.innerHTML = qtd > 0 ? `🔔 Notificações (${qtd})` : `🔔 Notificações`;
 }
+/*  
+===========================================================
+APP.JS — SUPER ASSEUF ENTERPRISE PRO
+PARTE 5/5
+===========================================================
+*/
 
 // ---------------------------------------------------------
 // LOGS TÉCNICOS
