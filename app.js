@@ -1,7 +1,10 @@
-// ==================== app.js - PARTE 1 ====================
-// Estado global
+// ==============================================
+// ASSEUF ENTERPRISE - SISTEMA PROFISSIONAL
+// PARTE 1/2 - ESTADO GLOBAL E FUNÇÕES AUXILIARES
+// ==============================================
+
 const state = {
-    paginaAtual: 'login',
+    paginaAtual: 'home',
     usuarioLogado: null,
     usuarios: [
         { usuario: 'admin', senha: '0000', perfil: 'admin' },
@@ -10,51 +13,68 @@ const state = {
         { usuario: 'visitante', senha: '1234', perfil: 'visitante' }
     ],
     rotas: [],
-    tema: 'claro',
     historicoCalculos: [],
     calculoAtual: null,
-    rotaEmEdicao: null
+    tema: 'light',
+    notificacoes: []
 };
 
-// Função de notificação
-function notificar(msg, tipo = 'info') {
-    const toastArea = document.getElementById('toastArea');
-    if (!toastArea) {
-        console.warn('ToastArea não encontrada');
-        return;
-    }
+// ========== FUNÇÕES DE NOTIFICAÇÃO ==========
+function mostrarNotificacao(mensagem, tipo = 'info', duracao = 3000) {
+    const container = document.getElementById('toast-area');
+    if (!container) return;
+
+    const id = 'toast-' + Date.now();
     const toast = document.createElement('div');
-    toast.className = `toast toast-${tipo}`;
-    toast.textContent = msg;
-    toastArea.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    toast.className = `toast ${tipo}`;
+    toast.id = id;
+    
+    const icones = {
+        info: 'fa-circle-info',
+        success: 'fa-circle-check',
+        error: 'fa-circle-exclamation'
+    };
+
+    toast.innerHTML = `
+        <i class="fas ${icones[tipo] || icones.info}"></i>
+        <div class="toast-content">
+            <div class="toast-title">${tipo.toUpperCase()}</div>
+            <div class="toast-message">${mensagem}</div>
+        </div>
+        <button class="toast-close" onclick="fecharNotificacao('${id}')">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.style.opacity = '0';
+            elemento.style.transform = 'translateX(20px)';
+            setTimeout(() => elemento.remove(), 300);
+        }
+    }, duracao);
 }
 
-// Tema
-function aplicarTema() {
-    const root = document.documentElement;
-    if (state.tema === 'escuro') {
-        root.style.setProperty('--bg', '#121212');
-        root.style.setProperty('--card', '#1e1e1e');
-        root.style.setProperty('--card2', '#2d2d2d');
-        root.style.setProperty('--texto', '#eee');
-        root.style.setProperty('--border', '#444');
-    } else {
-        root.style.setProperty('--bg', '#f5f5f5');
-        root.style.setProperty('--card', '#ffffff');
-        root.style.setProperty('--card2', '#f0f0f0');
-        root.style.setProperty('--texto', '#333333');
-        root.style.setProperty('--border', '#ddd');
+window.fecharNotificacao = (id) => {
+    const toast = document.getElementById(id);
+    if (toast) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => toast.remove(), 300);
     }
-}
+};
 
+// ========== FUNÇÕES DE TEMA ==========
 function alternarTema() {
-    state.tema = state.tema === 'claro' ? 'escuro' : 'claro';
-    aplicarTema();
+    state.tema = state.tema === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', state.tema);
     render();
 }
 
-// Backup
+// ========== FUNÇÕES DE BACKUP ==========
 function salvarBackup() {
     const backup = {
         usuarios: state.usuarios,
@@ -62,613 +82,316 @@ function salvarBackup() {
         historicoCalculos: state.historicoCalculos
     };
     localStorage.setItem('assef_backup', JSON.stringify(backup));
-    notificar('Backup salvo', 'success');
+    mostrarNotificacao('Backup salvo com sucesso!', 'success');
 }
 
 function carregarBackup() {
-    const data = localStorage.getItem('assef_backup');
-    if (data) {
+    const backup = localStorage.getItem('assef_backup');
+    if (backup) {
         try {
-            const backup = JSON.parse(data);
-            state.usuarios = backup.usuarios || state.usuarios;
-            state.rotas = backup.rotas || [];
-            state.historicoCalculos = backup.historicoCalculos || [];
-            notificar('Backup carregado', 'success');
-        } catch (e) {
-            notificar('Erro ao carregar backup', 'error');
+            const dados = JSON.parse(backup);
+            state.usuarios = dados.usuarios || state.usuarios;
+            state.rotas = dados.rotas || [];
+            state.historicoCalculos = dados.historicoCalculos || [];
+            mostrarNotificacao('Backup carregado!', 'success');
+        } catch (error) {
+            mostrarNotificacao('Erro ao carregar backup', 'error');
         }
     }
-    aplicarTema();
 }
 
-// Login
+// ========== FUNÇÕES DE LOGIN ==========
 function fazerLogin() {
-    const user = document.getElementById('login-user')?.value;
-    const pass = document.getElementById('login-pass')?.value;
-    const encontrado = state.usuarios.find(u => u.usuario === user && u.senha === pass);
-    if (encontrado) {
-        state.usuarioLogado = encontrado;
-        notificar('Login bem-sucedido', 'success');
+    const usuario = document.getElementById('login-usuario')?.value;
+    const senha = document.getElementById('login-senha')?.value;
+    
+    if (!usuario || !senha) {
+        mostrarNotificacao('Preencha todos os campos', 'error');
+        return;
+    }
+
+    const user = state.usuarios.find(u => u.usuario === usuario && u.senha === senha);
+    
+    if (user) {
+        state.usuarioLogado = user;
+        mostrarNotificacao(`Bem-vindo, ${user.usuario}!`, 'success');
         render();
     } else {
-        notificar('Usuário ou senha inválidos', 'error');
+        mostrarNotificacao('Usuário ou senha inválidos', 'error');
     }
 }
 
 function logout() {
     state.usuarioLogado = null;
+    mostrarNotificacao('Logout realizado', 'info');
     render();
 }
 
-// Navegação
-function mudarPagina(pagina, params = {}) {
-    state.paginaAtual = pagina;
-    if (params.rotaId) state.rotaEmEdicao = params.rotaId;
-    render();
+// ========== FUNÇÕES DE CÁLCULO ==========
+function calcularBruto(rota) {
+    return rota.veiculos.reduce((total, v) => {
+        if (v.diasRodados) {
+            return total + (v.valorDiaria * v.qtdDiarias * v.diasRodados);
+        }
+        return total + (v.valorDiaria * v.qtdDiarias);
+    }, 0);
 }
 
-// Renderização principal
+function calcularDistribuicao30_70(rotas, auxilioTotal) {
+    const diasMaximo = Math.max(...rotas.map(r => Math.max(...(r.diasRodadosArray || [0]))));
+    if (diasMaximo === 0) return rotas.map(() => 0);
+    
+    const valorPorDia = auxilioTotal / diasMaximo;
+    const auxilioPorRota = new Array(rotas.length).fill(0);
+
+    for (let dia = 1; dia <= diasMaximo; dia++) {
+        const rotasNoDia = rotas.filter(r => (r.diasRodadosArray || []).includes(dia));
+        
+        if (rotasNoDia.length === rotas.length) {
+            const brutos = rotasNoDia.map(r => calcularBruto(r));
+            const totalBruto = brutos.reduce((a, b) => a + b, 0);
+            rotasNoDia.forEach((r, idx) => {
+                const proporcao = totalBruto ? brutos[idx] / totalBruto : 1 / rotas.length;
+                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * proporcao;
+            });
+        } 
+        else if (rotasNoDia.length === 1) {
+            const r = rotasNoDia[0];
+            auxilioPorRota[rotas.indexOf(r)] += valorPorDia * 0.7;
+            rotas.filter(r2 => !(r2.diasRodadosArray || []).includes(dia)).forEach(r2 => {
+                auxilioPorRota[rotas.indexOf(r2)] += valorPorDia * 0.3;
+            });
+        }
+    }
+    
+    return auxilioPorRota;
+}
+
+function calcularAuxilio(auxilioDinheiro, auxilioCombustivel) {
+    const auxilioTotal = auxilioDinheiro + auxilioCombustivel;
+    const rotas = state.rotas;
+    
+    if (!rotas.length) {
+        mostrarNotificacao('Nenhuma rota cadastrada', 'error');
+        return [];
+    }
+
+    const brutos = rotas.map(r => calcularBruto(r));
+    const auxilios = calcularDistribuicao30_70(rotas, auxilioTotal);
+    const totalBruto = brutos.reduce((a, b) => a + b, 0);
+
+    return rotas.map((r, idx) => {
+        const bruto = brutos[idx];
+        const auxilio = auxilios[idx];
+        const aposAuxilio = bruto - auxilio;
+        const aposPassagens = aposAuxilio - (r.passagens || 0);
+        
+        return {
+            rota: r.nome,
+            bruto,
+            percBruto: totalBruto ? ((bruto / totalBruto) * 100).toFixed(2) : '0',
+            auxilio,
+            percAuxilio: auxilioTotal ? ((auxilio / auxilioTotal) * 100).toFixed(2) : '0',
+            aposAuxilio,
+            aposPassagens,
+            alunos: r.alunos || []
+        };
+    });
+}
+
+// ==============================================
+// PARTE 2/2 - RENDERIZAÇÃO E COMPONENTES
+// ==============================================
+
 function render() {
     const root = document.getElementById('root');
     if (!root) return;
 
     if (!state.usuarioLogado) {
-        // Tela de login
-        root.innerHTML = `
-            <div style="max-width:320px;margin:60px auto;" class="card">
-                <h2>ASSEUF Login</h2>
-                <input type="text" id="login-user" placeholder="Usuário">
-                <input type="password" id="login-pass" placeholder="Senha">
-                <button onclick="fazerLogin()" style="width:100%;">Entrar</button>
-            </div>
-        `;
+        root.innerHTML = renderLogin();
         return;
     }
 
-    const usuario = state.usuarioLogado;
-    // Layout principal
     root.innerHTML = `
         <div class="app-layout">
-            <aside id="menuLateral">
-                <div class="menu-usuario">
-                    <div class="menu-usuario-nome">${usuario.usuario}</div>
-                    <div class="menu-usuario-perfil">${usuario.perfil}</div>
-                </div>
-                <div class="menu-grupo">
-                    <button class="menu-botao" onclick="mudarPagina('home')">Home</button>
-                    <button class="menu-botao" onclick="mudarPagina('rotas')">Rotas</button>
-                    <button class="menu-botao" onclick="mudarPagina('calculo')">Cálculo</button>
-                    <button class="menu-botao" onclick="mudarPagina('historico')">Histórico</button>
-                    <button class="menu-botao" onclick="mudarPagina('relatorio')">Relatório</button>
-                    <button class="menu-botao" onclick="mudarPagina('backup')">Backup</button>
-                    <button class="menu-botao" onclick="alternarTema()">Tema</button>
-                    <button class="menu-botao menu-botao-principal" onclick="logout()">Logout</button>
-                </div>
-            </aside>
-            <main class="conteudo-principal">
-                <div class="container" id="main-content"></div>
+            ${renderSidebar()}
+            <main class="main-content">
+                ${renderConteudo()}
             </main>
         </div>
     `;
-    const main = document.getElementById('main-content');
-    if (!main) return;
-    // Roteamento simples
+
+    // Atualizar item ativo no menu
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.dataset.page === state.paginaAtual) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function renderLogin() {
+    return `
+        <div class="main-content" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);">
+            <div class="card" style="max-width: 400px; width: 100%; animation: slideIn 0.5s ease;">
+                <div class="text-center mb-4">
+                    <div class="logo" style="font-size: 2rem; font-weight: 700;">ASSEUF</div>
+                    <div style="color: var(--text-muted);">Enterprise Pro</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Usuário</label>
+                    <input type="text" id="login-usuario" class="form-control" placeholder="Digite seu usuário">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Senha</label>
+                    <input type="password" id="login-senha" class="form-control" placeholder="Digite sua senha">
+                </div>
+                
+                <button onclick="fazerLogin()" class="btn" style="width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
+                </button>
+                
+                <div class="text-center mt-4" style="color: var(--text-muted); font-size: 0.9rem;">
+                    <i class="fas fa-shield-alt"></i> Sistema seguro • v2.0
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderSidebar() {
+    const user = state.usuarioLogado;
+    
+    return `
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">ASSEUF</div>
+                <div class="subtitle">ENTERPRISE PRO</div>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-name">
+                    <i class="fas fa-user-circle"></i> ${user.usuario}
+                </div>
+                <div class="user-role">
+                    Perfil: <span class="role-badge">${user.perfil}</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item" data-page="home" onclick="mudarPagina('home')">
+                    <i class="fas fa-home"></i>
+                    Home
+                </button>
+                
+                <button class="nav-item" data-page="rotas" onclick="mudarPagina('rotas')">
+                    <i class="fas fa-route"></i>
+                    Rotas
+                </button>
+                
+                <button class="nav-item" data-page="calculo" onclick="mudarPagina('calculo')">
+                    <i class="fas fa-calculator"></i>
+                    Cálculo de Auxílio
+                </button>
+                
+                <button class="nav-item" data-page="historico" onclick="mudarPagina('historico')">
+                    <i class="fas fa-history"></i>
+                    Histórico
+                </button>
+                
+                <button class="nav-item" data-page="relatorio" onclick="mudarPagina('relatorio')">
+                    <i class="fas fa-file-pdf"></i>
+                    Relatório
+                </button>
+                
+                <button class="nav-item" data-page="backup" onclick="mudarPagina('backup')">
+                    <i class="fas fa-database"></i>
+                    Backup
+                </button>
+                
+                <button class="nav-item" onclick="alternarTema()">
+                    <i class="fas ${state.tema === 'light' ? 'fa-moon' : 'fa-sun'}"></i>
+                    ${state.tema === 'light' ? 'Tema Escuro' : 'Tema Claro'}
+                </button>
+                
+                <button class="nav-item logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sair
+                </button>
+            </nav>
+        </aside>
+    `;
+}
+
+function renderConteudo() {
     switch (state.paginaAtual) {
-        case 'home': main.innerHTML = paginaHome(); break;
-        case 'rotas': main.innerHTML = paginaRotas(); break;
-        case 'novaRota': main.innerHTML = paginaNovaRota(); break;
-        case 'editarRota': main.innerHTML = paginaEditarRota(); break;
-        case 'calculo': main.innerHTML = paginaCalculo(); break;
-        case 'historico': main.innerHTML = paginaHistorico(); break;
-        case 'relatorio': main.innerHTML = paginaRelatorio(); break;
-        case 'backup': main.innerHTML = paginaBackup(); break;
-        default: main.innerHTML = paginaHome();
+        case 'home': return renderHome();
+        case 'rotas': return renderRotas();
+        case 'novaRota': return renderNovaRota();
+        case 'calculo': return renderCalculo();
+        case 'historico': return renderHistorico();
+        case 'relatorio': return renderRelatorio();
+        case 'backup': return renderBackup();
+        default: return renderHome();
     }
 }
 
-function paginaHome() {
-    return `<h2>Home</h2><p>Bem-vindo ao sistema ASSEUF.</p>`;
-}
-// ==================== app.js - PARTE 2 ====================
-// Funções de rota
-function paginaRotas() {
-    let html = '<h2>Rotas</h2><button onclick="mudarPagina(\'novaRota\')">Nova Rota</button><ul>';
-    state.rotas.forEach(r => {
-        html += `<li>${r.nome} 
-            <button onclick="mudarPagina('editarRota', {rotaId:'${r.id}'})">Editar</button>
-            <button class="botao-perigo" onclick="excluirRota('${r.id}')">Excluir</button>
-        </li>`;
-    });
-    html += '</ul>';
-    return html;
-}
-
-function excluirRota(id) {
-    if (!['admin','taylor'].includes(state.usuarioLogado.perfil)) {
-        return notificar('Permissão negada', 'error');
-    }
-    state.rotas = state.rotas.filter(r => r.id !== id);
-    salvarBackup();
-    render();
-}
-
-function paginaNovaRota() {
-    state.rotaEmEdicao = null;
-    return formularioRota();
-}
-
-function paginaEditarRota() {
-    const rota = state.rotas.find(r => r.id === state.rotaEmEdicao);
-    if (!rota) return '<p>Rota não encontrada</p>';
-    return formularioRota(rota);
-}
-
-function formularioRota(rota = null) {
-    const id = rota ? rota.id : '';
-    const nome = rota ? rota.nome : '';
-    const diasRodados = rota ? rota.diasRodadosArray.join(',') : '';
-    const passagens = rota ? rota.passagens : '';
-    const modoAlunos = (rota && rota._modoAlunos) ? rota._modoAlunos : 'detalhado';
-
-    // Veículos
-    let veiculosHtml = '';
-    if (rota) {
-        rota.veiculos.forEach((v, idx) => {
-            veiculosHtml += `
-                <div class="veiculo-item">
-                    <input type="text" placeholder="Nome" class="veiculo-nome" value="${v.nome}" required>
-                    <input type="number" placeholder="Diária" step="0.01" class="veiculo-diaria" value="${v.valorDiaria}" required>
-                    <input type="number" placeholder="Qtd diárias" step="1" class="veiculo-qtd" value="${v.qtdDiarias}" required>
-                    <input type="number" placeholder="Dias rodados (opcional)" step="1" class="veiculo-dias" value="${v.diasRodados || ''}">
-                    <button type="button" class="botao-perigo" onclick="removerVeiculo(this)">Remover</button>
-                </div>
-            `;
-        });
-    }
-
-    // Alunos (detalhado)
-    let alunosHtml = '';
-    if (rota && modoAlunos === 'detalhado') {
-        rota.alunos.forEach((a, idx) => {
-            const tipo = a.integral ? 'integral' : 'desconto';
-            alunosHtml += `
-                <div class="aluno-item">
-                    <input type="text" placeholder="Nome" class="aluno-nome" value="${a.nome}" required>
-                    <select class="aluno-tipo">
-                        <option value="integral" ${tipo==='integral'?'selected':''}>Integral</option>
-                        <option value="desconto" ${tipo==='desconto'?'selected':''}>Com desconto</option>
-                    </select>
-                    <input type="number" placeholder="Desconto %" step="0.01" class="aluno-desconto" value="${a.desconto || 0}">
-                    <button type="button" class="botao-perigo" onclick="removerAluno(this)">Remover</button>
-                </div>
-            `;
-        });
-    }
-
+function renderHome() {
     return `
-        <h2>${rota ? 'Editar' : 'Nova'} Rota</h2>
-        <form onsubmit="salvarRota(event)">
-            <input type="hidden" id="rota-id" value="${id}">
-            <div class="card">
-                <label>Nome da rota:</label>
-                <input type="text" id="rota-nome" value="${nome}" required>
-                <label>Dias rodados (ex: 1,2,3,4):</label>
-                <input type="text" id="rota-dias" value="${diasRodados}" required>
-                <label>Passagens (R$):</label>
-                <input type="number" id="rota-passagens" step="0.01" value="${passagens}" required>
+        <div class="card" style="animation: fadeInUp 0.4s ease;">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-tachometer-alt" style="margin-right: 0.5rem;"></i>
+                    Dashboard
+                </h2>
+                <span class="badge badge-primary">Online</span>
             </div>
-            <h4>Veículos</h4>
-            <div id="veiculos-container">${veiculosHtml}</div>
-            <button type="button" onclick="adicionarVeiculo()">Adicionar Veículo</button>
-
-            <h4>Alunos</h4>
-            <div style="margin-bottom:10px;">
-                <label>Modo:</label>
-                <select id="modo-alunos" onchange="toggleModoAlunos()">
-                    <option value="detalhado" ${modoAlunos==='detalhado'?'selected':''}>Detalhado</option>
-                    <option value="resumido" ${modoAlunos==='resumido'?'selected':''}>Resumido</option>
-                </select>
-            </div>
-            <div id="alunos-container">${alunosHtml}</div>
-            <div id="alunos-resumo-container" style="display:${modoAlunos==='resumido'?'block':'none'};"></div>
-            <div id="alunos-botoes" style="display:${modoAlunos==='detalhado'?'block':'none'};">
-                <button type="button" onclick="adicionarAluno()">Adicionar Aluno</button>
-            </div>
-            <br>
-            <button type="submit" class="botao-principal">Salvar</button>
-            <button type="button" onclick="mudarPagina('rotas')">Cancelar</button>
-        </form>
-    `;
-}
-
-// Funções auxiliares do formulário
-window.adicionarVeiculo = function() {
-    const container = document.getElementById('veiculos-container');
-    const div = document.createElement('div');
-    div.className = 'veiculo-item';
-    div.innerHTML = `
-        <input type="text" placeholder="Nome" class="veiculo-nome" required>
-        <input type="number" placeholder="Diária" step="0.01" class="veiculo-diaria" required>
-        <input type="number" placeholder="Qtd diárias" step="1" class="veiculo-qtd" required>
-        <input type="number" placeholder="Dias rodados (opcional)" step="1" class="veiculo-dias">
-        <button type="button" class="botao-perigo" onclick="removerVeiculo(this)">Remover</button>
-    `;
-    container.appendChild(div);
-};
-
-window.removerVeiculo = function(btn) {
-    btn.closest('.veiculo-item').remove();
-};
-
-window.adicionarAluno = function() {
-    const container = document.getElementById('alunos-container');
-    const div = document.createElement('div');
-    div.className = 'aluno-item';
-    div.innerHTML = `
-        <input type="text" placeholder="Nome" class="aluno-nome" required>
-        <select class="aluno-tipo">
-            <option value="integral">Integral</option>
-            <option value="desconto">Com desconto</option>
-        </select>
-        <input type="number" placeholder="Desconto %" step="0.01" class="aluno-desconto" value="0">
-        <button type="button" class="botao-perigo" onclick="removerAluno(this)">Remover</button>
-    `;
-    container.appendChild(div);
-};
-
-window.removerAluno = function(btn) {
-    btn.closest('.aluno-item').remove();
-};
-
-window.toggleModoAlunos = function() {
-    const select = document.getElementById('modo-alunos');
-    const modo = select.value;
-    const containerDetalhado = document.getElementById('alunos-container');
-    const containerResumo = document.getElementById('alunos-resumo-container');
-    const botoes = document.getElementById('alunos-botoes');
-
-    if (modo === 'detalhado') {
-        containerDetalhado.style.display = 'block';
-        containerResumo.style.display = 'none';
-        botoes.style.display = 'block';
-        if (containerDetalhado.children.length === 0) adicionarAluno();
-    } else {
-        containerDetalhado.style.display = 'none';
-        containerResumo.style.display = 'block';
-        botoes.style.display = 'none';
-        if (containerResumo.children.length === 0) {
-            containerResumo.innerHTML = `
-                <div class="aluno-resumo">
-                    <label>Alunos integrais (quantidade)</label>
-                    <input type="number" id="alunos-integrais" value="0" min="0">
-                    <label>Alunos com desconto (quantidade)</label>
-                    <input type="number" id="alunos-desconto-qtd" value="0" min="0">
-                    <label>Desconto (%)</label>
-                    <input type="number" id="alunos-desconto-valor" value="0" min="0" max="100" step="0.1">
+            
+            <div class="grid">
+                <div class="card hover-lift">
+                    <i class="fas fa-route" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                    <h3>${state.rotas.length}</h3>
+                    <p style="color: var(--text-muted);">Rotas Ativas</p>
                 </div>
-            `;
-        }
-    }
-};
-
-function salvarRota(e) {
-    e.preventDefault();
-    const id = document.getElementById('rota-id').value;
-    const nome = document.getElementById('rota-nome').value;
-    const diasStr = document.getElementById('rota-dias').value;
-    const passagens = parseFloat(document.getElementById('rota-passagens').value) || 0;
-    const diasRodadosArray = diasStr.split(',').map(d => parseInt(d.trim())).filter(d => !isNaN(d));
-
-    const veiculos = [];
-    document.querySelectorAll('#veiculos-container .veiculo-item').forEach((item, idx) => {
-        const nome = item.querySelector('.veiculo-nome').value;
-        const diaria = parseFloat(item.querySelector('.veiculo-diaria').value);
-        const qtd = parseInt(item.querySelector('.veiculo-qtd').value);
-        const diasRodados = parseInt(item.querySelector('.veiculo-dias').value);
-        if (nome && !isNaN(diaria) && !isNaN(qtd)) {
-            veiculos.push({
-                id: 'v' + Date.now() + idx,
-                nome,
-                valorDiaria: diaria,
-                qtdDiarias: qtd,
-                diasRodados: isNaN(diasRodados) ? null : diasRodados
-            });
-        }
-    });
-
-    const modo = document.getElementById('modo-alunos').value;
-    let alunos = [];
-    if (modo === 'detalhado') {
-        document.querySelectorAll('#alunos-container .aluno-item').forEach((item, idx) => {
-            const nome = item.querySelector('.aluno-nome').value;
-            const tipo = item.querySelector('.aluno-tipo').value;
-            const desconto = parseFloat(item.querySelector('.aluno-desconto').value) || 0;
-            if (nome) {
-                alunos.push({
-                    id: 'a' + Date.now() + idx,
-                    nome,
-                    integral: tipo === 'integral',
-                    desconto: tipo === 'integral' ? 0 : desconto
-                });
-            }
-        });
-    } else {
-        const integrais = parseInt(document.getElementById('alunos-integrais').value) || 0;
-        const comDescontoQtd = parseInt(document.getElementById('alunos-desconto-qtd').value) || 0;
-        const descontoValor = parseFloat(document.getElementById('alunos-desconto-valor').value) || 0;
-        for (let i = 0; i < integrais; i++) {
-            alunos.push({ id: 'a'+Date.now()+i+'_int', nome: `Integral ${i+1}`, integral: true, desconto: 0 });
-        }
-        for (let i = 0; i < comDescontoQtd; i++) {
-            alunos.push({ id: 'a'+Date.now()+i+'_desc', nome: `Desconto ${i+1}`, integral: false, desconto: descontoValor });
-        }
-    }
-
-    if (!veiculos.length) return notificar('Adicione veículos', 'error');
-    if (alunos.length === 0) return notificar('Adicione alunos', 'error');
-
-    const rota = {
-        id: id || Date.now().toString(),
-        nome,
-        diasRodadosArray,
-        passagens,
-        veiculos,
-        alunos,
-        _modoAlunos: modo
-    };
-
-    if (id) {
-        const index = state.rotas.findIndex(r => r.id === id);
-        if (index !== -1) state.rotas[index] = rota;
-    } else {
-        state.rotas.push(rota);
-    }
-    salvarBackup();
-    notificar('Rota salva', 'success');
-    mudarPagina('rotas');
-}
-
-// ==================== CÁLCULOS ====================
-function calcularBruto(rota) {
-    let bruto = 0;
-    rota.veiculos.forEach(v => {
-        if (v.diasRodados) bruto += v.valorDiaria * v.qtdDiarias * v.diasRodados;
-        else bruto += v.valorDiaria * v.qtdDiarias;
-    });
-    return bruto;
-}
-
-function calcularDistribuicao30_70(rotas, auxilioTotal) {
-    const diasMaximo = Math.max(...rotas.map(r => Math.max(...r.diasRodadosArray, 0)));
-    if (diasMaximo === 0) return rotas.map(() => 0);
-    const valorPorDia = auxilioTotal / diasMaximo;
-    const auxilioPorRota = rotas.map(() => 0);
-    for (let dia = 1; dia <= diasMaximo; dia++) {
-        const rotasNoDia = rotas.filter(r => r.diasRodadosArray.includes(dia));
-        if (rotasNoDia.length === rotas.length) {
-            const brutos = rotasNoDia.map(r => calcularBruto(r));
-            const total = brutos.reduce((a,b) => a+b, 0);
-            rotasNoDia.forEach((r, idx) => {
-                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * (total ? brutos[idx]/total : 1/rotas.length);
-            });
-        } else if (rotasNoDia.length === 1) {
-            const r = rotasNoDia[0];
-            auxilioPorRota[rotas.indexOf(r)] += valorPorDia * 0.7;
-            rotas.filter(r2 => !r2.diasRodadosArray.includes(dia)).forEach(r2 => {
-                auxilioPorRota[rotas.indexOf(r2)] += valorPorDia * 0.3;
-            });
-        } else {
-            const brutos = rotasNoDia.map(r => calcularBruto(r));
-            const total = brutos.reduce((a,b) => a+b, 0);
-            rotasNoDia.forEach((r, idx) => {
-                auxilioPorRota[rotas.indexOf(r)] += valorPorDia * (total ? brutos[idx]/total : 1/rotasNoDia.length);
-            });
-        }
-    }
-    return auxilioPorRota;
-}
-
-function calcularValoresPorAluno(rota, saldo) {
-    const integrais = rota.alunos.filter(a => a.integral).length;
-    let somaCoef = integrais;
-    rota.alunos.forEach(a => { if (!a.integral) somaCoef += (1 - a.desconto/100); });
-    const valorIntegral = somaCoef ? saldo / somaCoef : 0;
-    return rota.alunos.map(a => ({
-        nome: a.nome,
-        valor: a.integral ? valorIntegral : valorIntegral * (1 - a.desconto/100)
-    }));
-}
-
-function calcularAuxilio(dinheiro, combustivel) {
-    const total = dinheiro + combustivel;
-    const rotas = state.rotas;
-    if (!rotas.length) { notificar('Nenhuma rota', 'error'); return []; }
-    const brutos = rotas.map(r => calcularBruto(r));
-    const auxilios = calcularDistribuicao30_70(rotas, total);
-    const totalBruto = brutos.reduce((a,b) => a+b, 0);
-    const resultados = rotas.map((r, idx) => {
-        const bruto = brutos[idx];
-        const auxilio = auxilios[idx];
-        const aposAuxilio = bruto - auxilio;
-        const aposPassagens = aposAuxilio - r.passagens;
-        const alunos = calcularValoresPorAluno(r, aposPassagens);
-        return {
-            rota: r.nome,
-            bruto,
-            percBruto: totalBruto ? (bruto/totalBruto*100).toFixed(2) : '0',
-            auxilio,
-            percAuxilio: total ? (auxilio/total*100).toFixed(2) : '0',
-            aposAuxilio,
-            aposPassagens,
-            alunos
-        };
-    });
-    state.calculoAtual = { dinheiro, combustivel, total, resultados, data: new Date().toISOString() };
-    return resultados;
-}
-
-function paginaCalculo() {
-    return `
-        <h2>Cálculo</h2>
-        <div class="card">
-            <label>Auxílio Dinheiro (R$): <input type="number" id="auxilioDinheiro" value="0" step="0.01"></label>
-            <label>Auxílio Combustível (R$): <input type="number" id="auxilioCombustivel" value="0" step="0.01"></label>
-            <button onclick="executarCalculo()">Calcular</button>
-        </div>
-        <div id="resultado"></div>
-    `;
-}
-
-window.executarCalculo = function() {
-    const d = parseFloat(document.getElementById('auxilioDinheiro').value) || 0;
-    const c = parseFloat(document.getElementById('auxilioCombustivel').value) || 0;
-    if (d+c === 0) return notificar('Informe auxílio', 'error');
-    const res = calcularAuxilio(d, c);
-    if (!res.length) return;
-    let html = '<h3>Resultado</h3><table class="tabela"><tr><th>Rota</th><th>Bruto</th><th>%</th><th>Auxílio</th><th>%</th><th>Após auxílio</th><th>Após passagens</th></tr>';
-    res.forEach(r => {
-        html += `<tr><td>${r.rota}</td><td>${r.bruto.toFixed(2)}</td><td>${r.percBruto}%</td><td>${r.auxilio.toFixed(2)}</td><td>${r.percAuxilio}%</td><td>${r.aposAuxilio.toFixed(2)}</td><td>${r.aposPassagens.toFixed(2)}</td></tr>`;
-    });
-    html += '</table>';
-    res.forEach(r => {
-        html += `<h4>${r.rota}</h4><ul>`;
-        r.alunos.forEach(a => html += `<li>${a.nome}: R$ ${a.valor.toFixed(2)}</li>`);
-        html += '</ul>';
-    });
-    html += '<button onclick="salvarCalculo()">Salvar no histórico</button>';
-    document.getElementById('resultado').innerHTML = html;
-};
-
-window.salvarCalculo = function() {
-    if (!state.calculoAtual) return notificar('Nada a salvar', 'error');
-    state.historicoCalculos.push(state.calculoAtual);
-    salvarBackup();
-    notificar('Salvo', 'success');
-};
-
-// ==================== HISTÓRICO ====================
-function excluirRegistroHistorico(index) {
-    if (!['admin','taylor'].includes(state.usuarioLogado.perfil)) return notificar('Permissão negada', 'error');
-    state.historicoCalculos.splice(index, 1);
-    salvarBackup();
-    render();
-}
-
-function paginaHistorico() {
-    let html = '<h2>Histórico</h2>';
-    if (!state.historicoCalculos.length) return html + '<p>Vazio</p>';
-    html += '<ul>';
-    state.historicoCalculos.forEach((c, i) => {
-        html += `<li>${new Date(c.data).toLocaleString()} - Total R$ ${c.total} 
-            <button onclick="excluirRegistroHistorico(${i})">Excluir</button>
-            <button onclick="verRelatorio(${i})">Ver</button>
-        </li>`;
-    });
-    html += '</ul>';
-    return html;
-}
-
-function verRelatorio(i) {
-    state.calculoAtual = state.historicoCalculos[i];
-    mudarPagina('relatorio');
-}
-
-// ==================== RELATÓRIO ====================
-function paginaRelatorio() {
-    if (!state.calculoAtual) return '<p>Selecione um cálculo</p>';
-    return `
-        <h2>Relatório</h2>
-        <button onclick="imprimirRelatorio()">PDF</button>
-        <div class="card">${gerarHTMLRelatorio(state.calculoAtual)}</div>
-    `;
-}
-
-function gerarHTMLRelatorio(c) {
-    let html = `<h3>${new Date(c.data).toLocaleString()}</h3>`;
-    html += `<p>Dinheiro: R$ ${c.dinheiro}, Combustível: R$ ${c.combustivel}, Total: R$ ${c.total}</p>`;
-    html += '<table class="tabela"><tr><th>Rota</th><th>Bruto</th><th>%</th><th>Auxílio</th><th>%</th><th>Após auxílio</th><th>Após passagens</th></tr>';
-    c.resultados.forEach(r => {
-        html += `<tr><td>${r.rota}</td><td>${r.bruto.toFixed(2)}</td><td>${r.percBruto}%</td><td>${r.auxilio.toFixed(2)}</td><td>${r.percAuxilio}%</td><td>${r.aposAuxilio.toFixed(2)}</td><td>${r.aposPassagens.toFixed(2)}</td></tr>`;
-    });
-    html += '</table>';
-    c.resultados.forEach(r => {
-        html += `<h4>${r.rota}</h4><table class="tabela"><tr><th>Aluno</th><th>Valor</th></tr>`;
-        r.alunos.forEach(a => html += `<tr><td>${a.nome}</td><td>R$ ${a.valor.toFixed(2)}</td></tr>`);
-        html += '</table>';
-    });
-    html += '<div class="memoria-bloco"><p>Regra 30/70 aplicada.</p></div>';
-    return html;
-}
-
-function imprimirRelatorio() {
-    if (!state.calculoAtual) return;
-    const w = window.open('', '_blank');
-    w.document.write(`<html><head><link rel="stylesheet" href="style.css"></head><body>${gerarHTMLRelatorio(state.calculoAtual)}</body></html>`);
-    w.document.close();
-    w.print();
-}
-
-// ==================== BACKUP ====================
-function paginaBackup() {
-    return `
-        <h2>Backup</h2>
-        <div class="card">
-            <button onclick="exportarBackup()">Exportar JSON</button>
-            <button onclick="document.getElementById('importFile').click()">Importar JSON</button>
-            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importarBackup(event)">
-            <hr>
-            <button onclick="imprimirRelatorio()">PDF do último</button>
+                
+                <div class="card hover-lift">
+                    <i class="fas fa-calculator" style="font-size: 2rem; color: var(--success); margin-bottom: 1rem;"></i>
+                    <h3>${state.historicoCalculos.length}</h3>
+                    <p style="color: var(--text-muted);">Cálculos Realizados</p>
+                </div>
+                
+                <div class="card hover-lift">
+                    <i class="fas fa-users" style="font-size: 2rem; color: var(--warning); margin-bottom: 1rem;"></i>
+                    <h3>${state.usuarioLogado.usuario}</h3>
+                    <p style="color: var(--text-muted);">Usuário Atual</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 2rem; background: var(--body-bg); border-radius: var(--radius-md);">
+                <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <h3>Sistema de Gerenciamento de Rotas</h3>
+                <p style="color: var(--text-muted);">Versão 2.0 • Interface Profissional</p>
+            </div>
         </div>
     `;
 }
 
-function exportarBackup() {
-    const data = JSON.stringify({ usuarios: state.usuarios, rotas: state.rotas, historicoCalculos: state.historicoCalculos }, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notificar('Exportado', 'success');
+function mudarPagina(pagina) {
+    state.paginaAtual = pagina;
+    render();
 }
 
-function importarBackup(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-        try {
-            const backup = JSON.parse(ev.target.result);
-            state.usuarios = backup.usuarios || state.usuarios;
-            state.rotas = backup.rotas || [];
-            state.historicoCalculos = backup.historicoCalculos || [];
-            salvarBackup();
-            notificar('Importado', 'success');
-            render();
-        } catch { notificar('Arquivo inválido', 'error'); }
-    };
-    reader.readAsText(file);
-}
-
-// ==================== INICIALIZAÇÃO ====================
+// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     carregarBackup();
     render();
 });
 
-// Expor funções globais (para uso nos botões)
+// Exportar funções globais
 window.fazerLogin = fazerLogin;
 window.logout = logout;
 window.mudarPagina = mudarPagina;
 window.alternarTema = alternarTema;
-window.excluirRota = excluirRota;
-window.salvarRota = salvarRota;
-window.executarCalculo = executarCalculo;
-window.salvarCalculo = salvarCalculo;
-window.excluirRegistroHistorico = excluirRegistroHistorico;
-window.verRelatorio = verRelatorio;
-window.imprimirRelatorio = imprimirRelatorio;
-window.exportarBackup = exportarBackup;
-window.importarBackup = importarBackup;
+window.salvarBackup = salvarBackup;
