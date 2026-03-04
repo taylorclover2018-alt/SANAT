@@ -1,35 +1,47 @@
-.login-container {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    background:var(--gradient-primary);
+body {
+  font-family: Arial;
+  margin: 0;
+  background: #f4f4f4;
 }
 
-.login-card {
-    background:white;
-    padding:40px;
-    border-radius:16px;
-    width:350px;
-    text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,0.2);
+header {
+  background: #1e3a8a;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
 }
 
-.login-card input {
-    margin:10px 0;
+section {
+  padding: 20px;
+  background: white;
+  margin: 15px;
+  border-radius: 8px;
 }
 
-.login-card button {
-    width:100%;
-    background:var(--primary);
-    color:white;
-    border:none;
-    padding:12px;
-    border-radius:10px;
-    cursor:pointer;
+input {
+  padding: 8px;
+  margin: 5px 0;
+  width: 200px;
 }
 
-.sidebar-logo-img {
-    width:40px;
-    margin-right:10px;
+button {
+  padding: 8px 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+.login-box {
+  width: 300px;
+  margin: 150px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  text-align: center;
 }
