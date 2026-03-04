@@ -1,47 +1,91 @@
 body {
-  font-family: Arial;
-  margin: 0;
-  background: #f4f4f4;
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:linear-gradient(135deg,#4361ee,#7209b7);
+    color:#fff;
 }
+
+.hidden { display:none; }
 
 header {
-  background: #1e3a8a;
-  color: white;
-  padding: 15px;
-  display: flex;
-  justify-content: space-between;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 40px;
+    background:rgba(0,0,0,0.3);
+    backdrop-filter:blur(10px);
 }
 
-section {
-  padding: 20px;
-  background: white;
-  margin: 15px;
-  border-radius: 8px;
+.logo h2 { margin:0; }
+
+.btn-logout {
+    background:#fff;
+    color:#4361ee;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.dashboard {
+    display:flex;
+    gap:20px;
+    padding:40px;
+}
+
+.card {
+    flex:1;
+    background:rgba(255,255,255,0.1);
+    padding:30px;
+    border-radius:16px;
+    text-align:center;
+    backdrop-filter:blur(8px);
+}
+
+.card span {
+    font-size:28px;
+    font-weight:700;
+}
+
+.rateio-section,
+.historico-section {
+    margin:40px;
+    padding:30px;
+    background:rgba(255,255,255,0.1);
+    border-radius:16px;
 }
 
 input {
-  padding: 8px;
-  margin: 5px 0;
-  width: 200px;
+    width:100%;
+    padding:12px;
+    margin-bottom:15px;
+    border:none;
+    border-radius:8px;
 }
 
 button {
-  padding: 8px 12px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  cursor: pointer;
+    padding:12px 20px;
+    border:none;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+    background:#fff;
+    color:#4361ee;
 }
 
-button:hover {
-  opacity: 0.8;
+.login-screen {
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
 }
 
-.login-box {
-  width: 300px;
-  margin: 150px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  text-align: center;
+.login-card {
+    background:rgba(255,255,255,0.1);
+    padding:50px;
+    border-radius:20px;
+    text-align:center;
+    width:350px;
+    backdrop-filter:blur(15px);
 }
