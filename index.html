@@ -1,46 +1,74 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Sistema Transporte</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transporte Pro | Premium</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="login-screen">
-  <div class="login-box">
-    <h2>Login</h2>
-    <input type="text" id="login-user" placeholder="Usuário">
-    <input type="password" id="login-pass" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
-  </div>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-screen">
+    <div class="login-card">
+        <h1>Transporte Pro</h1>
+        <p>Sistema Inteligente de Rateio</p>
+
+        <input type="text" id="loginUser" placeholder="Usuário">
+        <input type="password" id="loginPass" placeholder="Senha">
+        <button onclick="fazerLogin()">Entrar no Sistema</button>
+        <span id="loginErro"></span>
+    </div>
 </div>
 
-<div id="app" style="display:none;">
-  <header>
-    <h1>Sistema Transporte Universitário</h1>
-    <div>
-      <span id="user-info"></span>
-      <button onclick="logout()">Sair</button>
+<!-- SISTEMA -->
+<div id="app" class="hidden">
+
+<header>
+    <div class="logo">
+        <h2>Transporte Pro</h2>
+        <span id="usuarioInfo"></span>
     </div>
-  </header>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+</header>
 
-  <section>
+<section class="dashboard">
+    <div class="card">
+        <h3>Total de Rateios</h3>
+        <span id="statRateios">0</span>
+    </div>
+    <div class="card">
+        <h3>Média de Alunos por Veículo</h3>
+        <span id="statMedia">0</span>
+    </div>
+    <div class="card">
+        <h3>Último Usuário</h3>
+        <span id="statUsuario">-</span>
+    </div>
+</section>
+
+<section class="rateio-section">
     <h2>Novo Rateio</h2>
-    <input type="text" id="descricao" placeholder="Descrição">
-    <input type="number" id="auxilio" placeholder="Auxílio Total">
-    <button onclick="adicionarRateio()">Adicionar</button>
-  </section>
+    <input type="number" id="totalAlunos" placeholder="Total de alunos">
+    <input type="number" id="totalVeiculos" placeholder="Total de veículos">
+    <button onclick="calcularRateio()">Calcular Rateio</button>
+    <div id="resultadoRateio"></div>
+</section>
 
-  <section>
-    <h2>Histórico</h2>
+<section class="historico-section">
+    <div class="historico-header">
+        <h2>Histórico</h2>
+        <div>
+            <button id="btnExportar" onclick="exportarCSV()">Exportar CSV</button>
+            <button id="btnLimpar" onclick="limparHistorico()">Limpar</button>
+        </div>
+    </div>
     <div id="historico"></div>
-  </section>
+</section>
 
-  <section>
-    <h2>Dashboard</h2>
-    <canvas id="grafico" width="400" height="200"></canvas>
-  </section>
 </div>
 
 <script src="app.js"></script>
