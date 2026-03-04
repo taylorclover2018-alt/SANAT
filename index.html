@@ -1,74 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Transparência - Associação</title>
-<link rel="stylesheet" href="style.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Sistema Transporte</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="loginScreen" class="login-container">
-    <div class="login-card">
-        <img src="logo.png" class="login-logo">
-        <h2>Sistema de Transparência</h2>
-        <input type="text" id="username" placeholder="Usuário">
-        <input type="password" id="password" placeholder="Senha">
-        <button onclick="login()">Entrar</button>
-        <p id="loginError"></p>
-    </div>
+<div id="login-screen">
+  <div class="login-box">
+    <h2>Login</h2>
+    <input type="text" id="login-user" placeholder="Usuário">
+    <input type="password" id="login-pass" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+  </div>
 </div>
 
-<!-- APP -->
-<div id="app" class="app-wrapper" style="display:none;">
-
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <img src="logo.png" class="sidebar-logo-img">
-            <h2>Transparência</h2>
-        </div>
-
-        <div class="sidebar-nav">
-            <a class="nav-item active" onclick="showPage('dashboard')">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-            <a class="nav-item" onclick="showPage('rateio')">
-                <i class="fas fa-calculator"></i> Rateio
-            </a>
-            <a class="nav-item" onclick="showPage('historico')">
-                <i class="fas fa-history"></i> Histórico
-            </a>
-        </div>
-
-        <div class="sidebar-footer">
-            <p id="loggedUser"></p>
-            <button onclick="logout()">Sair</button>
-        </div>
+<div id="app" style="display:none;">
+  <header>
+    <h1>Sistema Transporte Universitário</h1>
+    <div>
+      <span id="user-info"></span>
+      <button onclick="logout()">Sair</button>
     </div>
+  </header>
 
-    <div class="main-content">
-        <div id="dashboard" class="page active">
-            <h2>Resumo Financeiro</h2>
-            <div id="dashboardContent"></div>
-        </div>
+  <section>
+    <h2>Novo Rateio</h2>
+    <input type="text" id="descricao" placeholder="Descrição">
+    <input type="number" id="auxilio" placeholder="Auxílio Total">
+    <button onclick="adicionarRateio()">Adicionar</button>
+  </section>
 
-        <div id="rateio" class="page">
-            <h2>Calcular Rateio</h2>
-            <input type="number" id="valorTotal" placeholder="Valor total">
-            <input type="number" id="quantidade" placeholder="Quantidade de associados">
-            <button id="btnCalcular" onclick="calcularRateio()">Calcular</button>
-            <h3 id="resultadoRateio"></h3>
-        </div>
+  <section>
+    <h2>Histórico</h2>
+    <div id="historico"></div>
+  </section>
 
-        <div id="historico" class="page">
-            <h2>Histórico Permanente</h2>
-            <button onclick="baixarRelatorio()">Baixar Relatório</button>
-            <div id="historicoLista"></div>
-        </div>
-    </div>
-
+  <section>
+    <h2>Dashboard</h2>
+    <canvas id="grafico" width="400" height="200"></canvas>
+  </section>
 </div>
 
 <script src="app.js"></script>
