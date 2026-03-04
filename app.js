@@ -1,121 +1,102 @@
-const usuarios = {
-    taylor: { senha: "1269", nivel: "admin" },
-    tesoureiro: { senha: "0000", nivel: "admin" },
-    usuario: { senha: "1234", nivel: "viewer" }
-};
+const usuariosPadrao = [
+  { user: "taylor", pass: "123", tipo: "presidente" },
+  { user: "tesoureiro", pass: "123", tipo: "tesoureiro" },
+  { user: "usuario", pass: "123", tipo: "usuario" }
+];
+
+if (!localStorage.getItem("usuarios")) {
+  localStorage.setItem("usuarios", JSON.stringify(usuariosPadrao));
+}
+
+if (!localStorage.getItem("rateios")) {
+  localStorage.setItem("rateios", JSON.stringify([]));
+}
 
 let usuarioAtual = null;
 
 function login() {
-    const user = document.getElementById("username").value;
-    const pass = document.getElementById("password").value;
+  const user = document.getElementById("login-user").value;
+  const pass = document.getElementById("login-pass").value;
 
-    if (usuarios[user] && usuarios[user].senha === pass) {
-        usuarioAtual = usuarios[user];
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "flex";
-        document.getElementById("loggedUser").innerText = "Logado como: " + user;
-        verificarPermissao();
-        carregarHistorico();
-        atualizarDashboard();
-    } else {
-        document.getElementById("loginError").innerText = "Login inválido";
-    }
+  const usuarios = JSON.parse(localStorage.getItem("usuarios"));
+
+  const encontrado = usuarios.find(u => u.user === user && u.pass === pass);
+
+  if (encontrado) {
+    usuarioAtual = encontrado;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("user-info").innerText =
+      `${encontrado.user} (${encontrado.tipo})`;
+    carregarHistorico();
+  } else {
+    alert("Login inválido");
+  }
 }
 
 function logout() {
-    location.reload();
+  usuarioAtual = null;
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "block";
 }
 
-function verificarPermissao() {
-    if (usuarioAtual.nivel === "viewer") {
-        document.getElementById("btnCalcular").style.display = "none";
-        document.getElementById("valorTotal").disabled = true;
-        document.getElementById("quantidade").disabled = true;
-    }
-}
+function adicionarRateio() {
+  if (usuarioAtual.tipo === "usuario") {
+    alert("Você não tem permissão para adicionar.");
+    return;
+  }
 
-function showPage(id) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-}
+  const descricao = document.getElementById("descricao").value;
+  const auxilio = parseFloat(document.getElementById("auxilio").value);
 
-function calcularRateio() {
-    const total = parseFloat(document.getElementById("valorTotal").value);
-    const qtd = parseInt(document.getElementById("quantidade").value);
+  const rateios = JSON.parse(localStorage.getItem("rateios"));
 
-    if (!total || !qtd) return;
+  const novo = {
+    id: Date.now(),
+    descricao,
+    auxilio,
+    criadoPor: usuarioAtual.user,
+    data: new Date().toLocaleString()
+  };
 
-    const valor = (total / qtd).toFixed(2);
-    document.getElementById("resultadoRateio").innerText = 
-        "Cada associado pagará R$ " + valor;
+  rateios.push(novo);
+  localStorage.setItem("rateios", JSON.stringify(rateios));
 
-    salvarHistorico(total, qtd, valor);
-}
-
-function salvarHistorico(total, qtd, valor) {
-    let historico = JSON.parse(localStorage.getItem("historico")) || [];
-
-    const registro = {
-        data: new Date().toLocaleString(),
-        total,
-        qtd,
-        valor,
-        usuario: usuarioAtual
-    };
-
-    historico.push(registro);
-    localStorage.setItem("historico", JSON.stringify(historico));
-
-    carregarHistorico();
-    atualizarDashboard();
+  carregarHistorico();
 }
 
 function carregarHistorico() {
-    let historico = JSON.parse(localStorage.getItem("historico")) || [];
-    const lista = document.getElementById("historicoLista");
-    lista.innerHTML = "";
+  const historicoDiv = document.getElementById("historico");
+  historicoDiv.innerHTML = "";
 
-    historico.forEach(item => {
-        lista.innerHTML += `
-            <div class="premium-card">
-                <div class="card-body">
-                    <p><b>Data:</b> ${item.data}</p>
-                    <p><b>Total:</b> R$ ${item.total}</p>
-                    <p><b>Associados:</b> ${item.qtd}</p>
-                    <p><b>Valor individual:</b> R$ ${item.valor}</p>
-                </div>
-            </div>
-        `;
-    });
-}
+  const rateios = JSON.parse(localStorage.getItem("rateios"));
 
-function atualizarDashboard() {
-    let historico = JSON.parse(localStorage.getItem("historico")) || [];
-    let totalMovimentado = historico.reduce((soma, h) => soma + parseFloat(h.total), 0);
-
-    document.getElementById("dashboardContent").innerHTML = `
-        <div class="premium-card">
-            <div class="card-body">
-                <h3>Total movimentado</h3>
-                <h2>R$ ${totalMovimentado.toFixed(2)}</h2>
-                <p>Total de rateios realizados: ${historico.length}</p>
-            </div>
-        </div>
+  rateios.forEach(r => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <strong>${r.descricao}</strong><br>
+      Auxílio: R$ ${r.auxilio}<br>
+      Criado por: ${r.criadoPor}<br>
+      Data: ${r.data}
+      <hr>
     `;
+    historicoDiv.appendChild(div);
+  });
+
+  desenharGrafico(rateios);
 }
 
-function baixarRelatorio() {
-    let historico = JSON.parse(localStorage.getItem("historico")) || [];
-    let texto = "RELATORIO FINANCEIRO\n\n";
+function desenharGrafico(rateios) {
+  const canvas = document.getElementById("grafico");
+  const ctx = canvas.getContext("2d");
 
-    historico.forEach(h => {
-        texto += `Data: ${h.data}\nTotal: R$ ${h.total}\nQtd: ${h.qtd}\nValor: R$ ${h.valor}\n\n`;
-    });
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const blob = new Blob([texto], { type: "text/plain" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "relatorio.txt";
-    link.click();
+  let x = 20;
+  rateios.forEach(r => {
+    const altura = r.auxilio / 5;
+    ctx.fillStyle = "#2563eb";
+    ctx.fillRect(x, 200 - altura, 30, altura);
+    x += 50;
+  });
 }
